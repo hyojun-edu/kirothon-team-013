@@ -12,10 +12,12 @@ interface Props {
   cheapestLabel?: string;
   onOpen: (id: string) => void;
   onZoom: (photoId: string) => void;
+  /** "오래된 가격" 라벨을 누르면 (작업 16.4) */
+  onOld?: () => void;
 }
 
 // 요구 5.3~5.7, 14.5, 14.6: 사진(순위 배지) + 단위가격(가장 크게), 가격·용량×번들, 품명·브랜드, 원산지, 판매처, 날짜
-export function ResultCard({ row, showRank, cheapestLabel, onOpen, onZoom }: Props) {
+export function ResultCard({ row, showRank, cheapestLabel, onOpen, onZoom, onOld }: Props) {
   const r = row.rec;
   const thumb = usePhotoUrl(r.photoId);
   const [histOpen, setHistOpen] = useState(false);
@@ -58,7 +60,21 @@ export function ResultCard({ row, showRank, cheapestLabel, onOpen, onZoom }: Pro
             {r.isOnline && <OnlineBadge />}
             {r.isOnline && r.shippingFee ? <span className="badge badge-old">배송비 포함</span> : null}
             <span className="date">{fmtDate(r.purchasedAt)}</span>
-            {row.isOld && <span className="badge badge-old">오래된 가격</span>}
+            {row.isOld &&
+              (onOld ? (
+                <button
+                  type="button"
+                  className="badge-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOld();
+                  }}
+                >
+                  <span className="badge badge-old">오래된 가격</span>
+                </button>
+              ) : (
+                <span className="badge badge-old">오래된 가격</span>
+              ))}
           </div>
         </div>
       </div>

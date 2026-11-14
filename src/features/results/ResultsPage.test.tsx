@@ -263,3 +263,75 @@ describe('홈 빠른 비교에서 온 결과 화면 (요구 16.10, 16.11)', () =
     expect(screen.getByRole('tab', { name: '똑같은 상품' })).not.toHaveAttribute('aria-disabled');
   });
 });
+
+describe('기간 필터 (요구 6.9~6.13, 작업 16)', () => {
+  const ago = (n: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    return todayISO(d);
+  };
+  async function seed3() {
+    const { itemId } = await saveRecord(d({ price: 2000, purchasedAt: ago(120), storeName: '시장' }), photo); // 333원
+    await saveRecord(d({ price: 3480, purchasedAt: ago(5), storeName: '이마트' }), photo); // 580원
+    await saveRecord(d({ price: 4000, purchasedAt: ago(40), storeName: '롯데' }), photo); // 667원
+    return itemId;
+  }
+  const pickPeriod = async (label: string) => {
+    await userEvent.click(screen.getByRole('button', { name: /^기간|^최근/, expanded: false }));
+    await userEvent.click(within(screen.getByRole('dialog', { name: '기간 선택' })).getByRole('radio', { name: label }));
+    await userEvent.click(screen.getByRole('button', { name: '적용' }));
+  };
+
+  it('6.9~6.12: 최근 90일을 고르면 오래된 기록이 빠지고, 알약 글자·칩·안내, 모두 보기로 전체', async () => {
+    const itemId = await seed3();
+    renderAt(`/items/${itemId}`);
+    await waitFor(() => expect(screen.getAllByTestId('row')).toHaveLength(3));
+    await pickPeriod('최근 90일');
+    await waitFor(() => expect(rowsText()).toEqual(['580원/100g', '667원/100g']));
+    expect(screen.getAllByTestId('row')[0].querySelector('.badge-cheapest')).toHaveTextContent('조건 내 최저가');
+    expect(screen.getByRole('button', { name: /^최근 90일/, expanded: false })).toBeInTheDocument();
+    expect(screen.getByText(/오래된 기록 1건을 숨겼어요/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: '모두 보기' }));
+    await waitFor(() => expect(screen.getAllByTestId('row')).toHaveLength(3));
+    // 칩에서 해제
+    await pickPeriod('최근 30일');
+    await waitFor(() => expect(screen.getAllByTestId('row')).toHaveLength(1));
+    const chips = screen.getByLabelText('적용된 필터');
+    await userEvent.click(within(chips).getByRole('button', { name: /최근 30일/ }));
+    await waitFor(() => expect(screen.getAllByTestId('row')).toHaveLength(3));
+  });
+
+  it('6.12: 같은 품목으로 다시 들어와도 기간 유지', async () => {
+    const itemId = await seed3();
+    const { unmount } = renderAt(`/items/${itemId}`);
+    await waitFor(() => expect(screen.getAllByTestId('row')).toHaveLength(3));
+    await pickPeriod('최근 90일');
+    await waitFor(() => expect(screen.getAllByTestId('row')).toHaveLength(2));
+    unmount();
+    renderAt(`/items/${itemId}`);
+    await waitFor(() => expect(screen.getAllByTestId('row')).toHaveLength(2));
+    expect(screen.getByRole('button', { name: /^최근 90일/, expanded: false })).toBeInTheDocument();
+  });
+
+  it('6.13: 기간 때문에 0건이면 안내와 모두 보기', async () => {
+    const { itemId } = await saveRecord(d({ purchasedAt: ago(200) }), photo);
+    renderAt(`/items/${itemId}`);
+    await waitFor(() => expect(screen.getAllByTestId('row')).toHaveLength(1));
+    await pickPeriod('최근 30일');
+    expect(await screen.findByText('이 기간에는 기록이 없어요')).toBeInTheDocument();
+    expect(screen.queryByText('조건에 맞는 기록이 없어요')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: '모두 보기' }));
+    await waitFor(() => expect(screen.getAllByTestId('row')).toHaveLength(1));
+  });
+
+  it('16.4: "오래된 가격" 라벨을 누르면 90일 넘은 기록 숨기기를 제안하고 누르면 최근 90일', async () => {
+    const itemId = await seed3();
+    renderAt(`/items/${itemId}`);
+    await waitFor(() => expect(screen.getAllByTestId('row')).toHaveLength(3));
+    await userEvent.click(screen.getByRole('button', { name: '오래된 가격' }));
+    expect(screen.queryByTestId('where')).toBeNull(); // 상세로 가지 않는다
+    await userEvent.click(screen.getByRole('button', { name: '90일 넘은 기록 숨기기' }));
+    await waitFor(() => expect(screen.getAllByTestId('row')).toHaveLength(2));
+    expect(screen.getByRole('button', { name: /^최근 90일/, expanded: false })).toBeInTheDocument();
+  });
+});

@@ -31,7 +31,7 @@ test('프리셋 탭, 필터 버튼, 하단 버튼이 한 줄이고 1위 카드�
   await page.getByRole('tab', { name: '용량 무관' }).click();
   await expect(page.locator('.tab-hint')).toHaveText('품명·브랜드가 같으면 용량이 달라도 비교해요');
   await oneLine(page, '[role=tab]', 3);
-  await oneLine(page, '.filter-bar .pill', 3);
+  await oneLine(page, '.filter-bar .pill', 4); // 작업 16: 기간 알약 추가
   await oneLine(page, '.bottom-bar > button', 2);
   const hint = await page.locator('.tab-hint').evaluate((e) => e.getBoundingClientRect().height <= parseFloat(getComputedStyle(e).lineHeight) * 1.2);
   expect(hint).toBe(true);
@@ -54,7 +54,7 @@ test('프리셋 탭, 필터 버튼, 하단 버튼이 한 줄이고 1위 카드�
   await noHorizontalScroll(page);
   await page.getByRole('button', { name: '적용' }).click();
   await expect(page.locator('.filter-bar .pill-count')).toHaveText('1');
-  await oneLine(page, '.filter-bar .pill', 3);
+  await oneLine(page, '.filter-bar .pill', 4); // 작업 16: 기간 알약 추가
   await expect(page.getByRole('button', { name: '전체 해제' })).toBeVisible();
   await noHorizontalScroll(page);
 });

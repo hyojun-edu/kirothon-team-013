@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Chip } from '../../components/Chip';
 import { MultiSelect } from '../../components/MultiSelect';
+import { PERIOD_LABELS, PeriodSelect } from '../../components/PeriodSelect';
 import { PhotoZoom } from '../../components/Thumb';
 import { useAsync } from '../../components/useAsync';
-import { buildResult, emptyFilters, originLabel, type Anchor, type Filters, type Preset } from '../../domain/compare';
+import { buildResult, emptyFilters, originLabel, type Anchor, type Filters, type Period, type Preset } from '../../domain/compare';
 import { buildSearchQuery } from '../../domain/searchQuery';
 import type { RegisterDraft } from '../../domain/types';
 import { formatUnitPrice, formatWon } from '../../domain/unitPrice';
@@ -56,15 +57,17 @@ export function ResultsPage() {
     setView((v) => ({ ...v, preset: exact.rows.length + exact.incomparable.length > 0 ? 'exact' : 'allItem' }));
   }, [navState?.quick, records, draftAnchor]);
   const setFilters = (f: Filters) => setView((v) => ({ ...v, filters: f }));
+  const setPeriod = (p: Period) => setView((v) => ({ ...v, period: p }));
   const [visible, setVisible] = useState(PAGE);
   const [zoom, setZoom] = useState<string | null>(null);
   const [tabNote, setTabNote] = useState<string | null>(null);
+  const [oldOffer, setOldOffer] = useState(false);
   const [pending, setPending] = useState<PendingSearch | null>(() => pendingSearch());
 
   const result = useMemo(
-    () => (records ? buildResult(records, { preset, anchor, filters: view.filters, sort: view.sort, showHistory: false }) : null),
+    () => (records ? buildResult(records, { preset, anchor, filters: view.filters, sort: view.sort, period: view.period, showHistory: false }) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [records, preset, mine, draftAnchor, view.filters, view.sort],
+    [records, preset, mine, draftAnchor, view.filters, view.sort, view.period],
   );
 
   // 내 상품 행이 보이도록 (spec 7.3)
@@ -91,8 +94,10 @@ export function ResultsPage() {
     ...[...f.brands].map((k) => ({ label: result?.facets.brands.find((x) => x.key === k)?.label ?? k, remove: () => { const s = new Set(f.brands); s.delete(k); setFilters({ ...f, brands: s }); } })),
     ...[...f.origins].map((k) => ({ label: originLabel(k), remove: () => { const s = new Set(f.origins); s.delete(k); setFilters({ ...f, origins: s }); } })),
     ...[...f.bundles].map((k) => ({ label: `${k}개 묶음`, remove: () => { const s = new Set(f.bundles); s.delete(k); setFilters({ ...f, bundles: s }); } })),
+    // 요구 6.12: 기간이 "전체"가 아니면 칩
+    ...(view.period !== 'all' ? [{ label: PERIOD_LABELS[view.period], remove: () => setPeriod('all') }] : []),
   ];
-  const clearFilters = () => setFilters(emptyFilters());
+  const clearFilters = () => setView((v) => ({ ...v, filters: emptyFilters(), period: 'all' }));
 
   // 검색어와 미리 채우기 기준 상품: 내 상품 → 최저가 기록 → 품목명
   const baseRec = (mine && records?.find((r) => r.id === mine)) || result?.cheapest?.rec || records?.[0];
@@ -170,6 +175,7 @@ export function ResultsPage() {
             <MultiSelect label="브랜드" options={result.facets.brands} selected={f.brands} onChange={(s) => setFilters({ ...f, brands: s })} />
             <MultiSelect label="원산지" options={result.facets.origins} selected={f.origins} onChange={(s) => setFilters({ ...f, origins: s })} />
             <MultiSelect label="번들" options={result.facets.bundles} selected={f.bundles} onChange={(s) => setFilters({ ...f, bundles: s })} />
+            <PeriodSelect value={view.period} onChange={setPeriod} />
             <select aria-label="정렬" value={view.sort} onChange={(e) => setView((v) => ({ ...v, sort: e.target.value as 'unitPrice' | 'recent' }))}>
               <option value="unitPrice">단위가격순</option>
               <option value="recent">최신순</option>
@@ -211,7 +217,47 @@ export function ResultsPage() {
         </div>
       )}
 
-      {result && records && records.length > 0 && result.rows.length === 0 && result.incomparable.length === 0 && (
+      {/* 요구 6.11: 기간으로 숨긴 기록 안내. 6.13: 기간 때문에 0건 */}
+      {result && result.hiddenByPeriod > 0 && (result.rows.length > 0 || result.incomparable.length > 0) && (
+        <p className="period-note hint" role="status">
+          오래된 기록 {result.hiddenByPeriod}건을 숨겼어요 ·{' '}
+          <button type="button" className="link-btn" onClick={() => setPeriod('all')}>
+            모두 보기
+          </button>
+        </p>
+      )}
+      {result && result.hiddenByPeriod > 0 && result.rows.length === 0 && result.incomparable.length === 0 && (
+        <div className="empty">
+          <span className="empty-icon" aria-hidden="true">🗓️</span>
+          <p>이 기간에는 기록이 없어요</p>
+          <button type="button" onClick={() => setPeriod('all')}>
+            모두 보기
+          </button>
+        </div>
+      )}
+      {/* 작업 16.4: "오래된 가격" 라벨을 누르면 90일 넘은 기록 숨기기를 제안 */}
+      {oldOffer && view.period === 'all' && (
+        <div className="period-offer" role="status">
+          <span>90일 넘은 가격은 지금과 다를 수 있어요.</span>
+          <div className="row-btns">
+            <button type="button" onClick={() => setOldOffer(false)}>
+              그대로 보기
+            </button>
+            <button
+              type="button"
+              className="primary"
+              onClick={() => {
+                setPeriod('90d');
+                setOldOffer(false);
+              }}
+            >
+              90일 넘은 기록 숨기기
+            </button>
+          </div>
+        </div>
+      )}
+
+      {result && records && records.length > 0 && result.hiddenByPeriod === 0 && result.rows.length === 0 && result.incomparable.length === 0 && (
         <div className="empty">
           <span className="empty-icon" aria-hidden="true">🔍</span>
           <p>조건에 맞는 기록이 없어요</p>
@@ -227,7 +273,7 @@ export function ResultsPage() {
       {result && result.rows.length > 0 && (
         <ul className="rows" aria-label="기록 목록">
           {result.rows.slice(0, shown).map((row) => (
-            <ResultCard key={row.rec.id} row={row} showRank cheapestLabel={activeChips.length > 0 ? '조건 내 최저가' : '최저가'} onOpen={(id) => nav(`/records/${id}`)} onZoom={setZoom} />
+            <ResultCard key={row.rec.id} row={row} showRank cheapestLabel={activeChips.length > 0 ? '조건 내 최저가' : '최저가'} onOpen={(id) => nav(`/records/${id}`)} onZoom={setZoom} onOld={() => setOldOffer(true)} />
           ))}
         </ul>
       )}
