@@ -36,6 +36,12 @@ export interface PriceRecordView {
   createdAt: string;
 }
 
+/** 등록 화면 사진 상태 (요구 3.7~3.10). reused = 기존 사진을 같이 쓴다, new = 새로 고른 사진 */
+export type DraftPhoto =
+  | { kind: 'reused'; photoId: string }
+  | { kind: 'new'; blob: Blob; thumb: Blob; width: number; height: number }
+  | { kind: 'empty' };
+
 /** 등록 화면 입력값 */
 export interface RegisterDraft {
   productName: FieldState<string>;
@@ -50,8 +56,7 @@ export interface RegisterDraft {
   storeIsOnline: boolean;
   shippingFee: FieldState<number>;
   purchasedAt: string;
-  photo: Blob | null;
-  photoId?: string; // 수정 시 기존 사진
+  photo: DraftPhoto;
   note: string;
 }
 
@@ -80,7 +85,7 @@ export function emptyDraft(now: Date = new Date()): RegisterDraft {
     storeIsOnline: false,
     shippingFee: { kind: 'empty' },
     purchasedAt: todayISO(now),
-    photo: null,
+    photo: { kind: 'empty' },
     note: '',
   };
 }

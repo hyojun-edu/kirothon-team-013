@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Autocomplete } from '../../components/Autocomplete';
 import { NAField } from '../../components/NAField';
@@ -9,8 +9,8 @@ import { buildSearchQuery } from '../../domain/searchQuery';
 import { emptyDraft, type InputUnit, type PriceRecordView, type RegisterDraft } from '../../domain/types';
 import { formatUnitPrice, formatWon, unitPrice } from '../../domain/unitPrice';
 import { INPUT_UNITS } from '../../domain/units';
-import { getPhoto, getRecordView, findItemByName, listRecordViews, saveRecord, searchItems, searchProducts, searchStores, updateRecord } from '../../data/repositories';
-import { processPhoto, type ProcessedPhoto } from '../../data/image';
+import { getPhoto, getRecordView, findItemByName, latestPhotoId, listRecordViews, saveRecord, searchItems, searchProducts, searchStores, updateRecord } from '../../data/repositories';
+import { processPhoto } from '../../data/image';
 import type { Item, Store } from '../../data/db';
 import { OnlineSearch } from '../search/OnlineSearch';
 import { validateDraft } from './validate';
@@ -18,7 +18,7 @@ import { validateDraft } from './validate';
 const PACK_UNITS = ['개', '팩', '봉', '병', '캔', '박스', 'kg', '단'];
 const num = (s: string) => (s.trim() === '' ? null : Number(s));
 
-/** 고른 기존 상품으로 상품 정보만 채운다. 가격, 판매처, 날짜, 사진은 그대로 (요구 3.2, 3.4) */
+/** 고른 기존 상품으로 상품 정보를 채운다. 가격, 판매처, 날짜는 그대로 (요구 3.2, 3.4). 사진은 onSelectProduct가 불러온다 (요구 3.7) */
 function applyProduct(d: RegisterDraft, rec: PriceRecordView): RegisterDraft {
   const p = prefill(rec, 'clone');
   return { ...d, productName: p.productName, itemName: p.itemName, origin: p.origin, brand: p.brand, packUnit: p.packUnit, unitAmount: p.unitAmount, bundleCount: p.bundleCount };
@@ -31,9 +31,8 @@ export function RegisterPage() {
   const from = params.get('from');
   const mode = (params.get('mode') ?? 'clone') as PrefillMode;
   const [draft, setDraft] = useState<RegisterDraft>(() => ({ ...emptyDraft(), itemName: params.get('item') ?? '' }));
-  const [photo, setPhoto] = useState<ProcessedPhoto | null>(null);
   const [preview, setPreview] = useState<Blob | null>(null);
-  const [hasExistingPhoto, setHasExistingPhoto] = useState(false);
+  const pickSeq = useRef(0);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -47,15 +46,32 @@ export function RegisterPage() {
       if (!rec) return;
       if (editId) {
         const d = prefill(rec, 'refresh');
-        setDraft({ ...d, price: rec.price, purchasedAt: rec.purchasedAt, note: rec.note ?? '', photoId: rec.photoId });
         const ph = await getPhoto(rec.photoId);
-        if (ph) {
-          setPreview(ph.thumb);
-          setHasExistingPhoto(true);
-        }
+        setDraft({ ...d, price: rec.price, purchasedAt: rec.purchasedAt, note: rec.note ?? '', photo: ph ? { kind: 'reused', photoId: rec.photoId } : { kind: 'empty' } });
       } else setDraft(prefill(rec, mode));
     });
   }, [editId, from, mode]);
+
+  // 사진 미리보기: 새 사진은 썸네일, 불러온 사진은 저장된 썸네일
+  useEffect(() => {
+    const ph = draft.photo;
+    if (ph.kind !== 'reused') return setPreview(ph.kind === 'new' ? ph.thumb : null);
+    let alive = true;
+    getPhoto(ph.photoId).then((p) => alive && setPreview(p?.thumb ?? null));
+    return () => {
+      alive = false;
+    };
+  }, [draft.photo]);
+
+  // 요구 3.7, 3.10: 자동완성으로 고른 상품의 가장 최근 사진을 불러온다. 이미 새로 찍은 사진은 덮지 않는다.
+  const onSelectProduct = (r: PriceRecordView, na = false) => {
+    setDraft((d) => ({ ...applyProduct(d, r), ...(na ? { productName: { kind: 'na' as const } } : {}) }));
+    const seq = ++pickSeq.current;
+    latestPhotoId(r.productId).then((photoId) => {
+      if (seq !== pickSeq.current) return;
+      setDraft((d) => (d.photo.kind === 'new' ? d : { ...d, photo: photoId ? { kind: 'reused', photoId } : { kind: 'empty' } }));
+    });
+  };
 
   const set = <K extends keyof RegisterDraft>(k: K, v: RegisterDraft[K]) => setDraft((d) => ({ ...d, [k]: v }));
 
@@ -102,7 +118,7 @@ export function RegisterPage() {
     }).anchorSummary;
   }, [myUnitPrice, itemRecords]);
 
-  const errors = validateDraft(draft, !!photo || hasExistingPhoto);
+  const errors = validateDraft(draft);
   const valid = Object.keys(errors).length === 0;
   // 값이 있는데 잘못된 경우 즉시 필드 아래에 보여준다 (design.md 오류 처리)
   const bad = (k: keyof typeof errors, filled: boolean) =>
@@ -116,8 +132,7 @@ export function RegisterPage() {
     setPhotoError(null);
     try {
       const p = await processPhoto(file);
-      setPhoto(p);
-      setPreview(p.thumb);
+      set('photo', { kind: 'new', ...p }); // 요구 3.9: 새 사진으로 바꾼다
     } catch {
       setPhotoError('사진을 처리하지 못했어요. 다시 시도해 주세요.');
     }
@@ -128,7 +143,11 @@ export function RegisterPage() {
     setSaving(true);
     setSaveError(null);
     try {
-      const r = editId ? await updateRecord(editId, draft, photo) : await saveRecord(draft, photo!);
+      const ph = draft.photo;
+      const fresh = ph.kind === 'new' ? { blob: ph.blob, thumb: ph.thumb, width: ph.width, height: ph.height } : null;
+      const r = editId
+        ? await updateRecord(editId, draft, fresh)
+        : await saveRecord(draft, fresh ?? (ph.kind === 'reused' ? ph.photoId : '')); // valid이면 empty가 아니다
       nav(`/items/${r.itemId}?mine=${r.id}`, { replace: !!editId });
     } catch {
       // 입력값은 그대로 둔다 (design.md 오류 처리)
@@ -171,7 +190,7 @@ export function RegisterPage() {
             fetch={fetchProducts}
             itemKey={(r) => r.productId}
             render={productLabel}
-            onSelect={(r) => setDraft((d) => applyProduct(d, r))}
+            onSelect={(r) => onSelectProduct(r)}
             placeholder="예: 국산콩으로 만든 두부"
           />
         </NAField>
@@ -184,7 +203,7 @@ export function RegisterPage() {
             fetch={fetchItemProducts}
             itemKey={(r) => r.productId}
             render={productLabel}
-            onSelect={(r) => setDraft((d) => ({ ...applyProduct(d, r), productName: { kind: 'na' } }))}
+            onSelect={(r) => onSelectProduct(r, true)}
             placeholder="예: 양파"
           />
         ) : (
@@ -330,7 +349,7 @@ export function RegisterPage() {
           <textarea id="note" rows={2} value={draft.note} onChange={(e) => set('note', e.target.value)} />
         </div>
 
-        <PhotoPicker preview={preview} onPick={onPick} error={photoError ?? errors.photo} />
+        <PhotoPicker preview={preview} reused={!editId && draft.photo.kind === 'reused'} onPick={onPick} error={photoError ?? errors.photo} />
 
         <div className="field">
           <OnlineSearch query={buildSearchQuery({ itemName: draft.itemName, productName: draft.productName, brand: draft.brand, unitAmount: draft.unitAmount })} />

@@ -38,8 +38,7 @@ describe('prefill (요구 10, 11)', () => {
       expect(d.price).toBeNull();
       expect(d.storeName).toBe('');
       expect(d.shippingFee).toEqual({ kind: 'empty' });
-      expect(d.photo).toBeNull();
-      expect(d.photoId).toBeUndefined();
+      expect(d.photo).toEqual({ kind: 'empty' }); // 요구 3.11
       expect(d.note).toBe('');
       expect(d.purchasedAt).toBe('2026-11-14');
     });
@@ -50,7 +49,7 @@ describe('prefill (요구 10, 11)', () => {
     expect(d.storeIsOnline).toBe(true);
     expect(d.shippingFee).toEqual({ kind: 'value', value: 3000 });
     expect(d.price).toBeNull();
-    expect(d.photo).toBeNull();
+    expect(d.photo).toEqual({ kind: 'empty' }); // 요구 3.11
     expect(d.note).toBe('');
   });
   it('N/A 필드는 N/A로 복사한다', () => {

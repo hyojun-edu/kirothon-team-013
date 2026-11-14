@@ -9,7 +9,7 @@ function copyField<T>(f: Field<T> | undefined): FieldState<T> {
   return { kind: 'value', value: structuredClone(f.value) };
 }
 
-// 요구 10.2~10.5, 11.4: 상품 정보는 채우고 가격·사진은 비운다. 원본은 건드리지 않는다.
+// 요구 10.2~10.5, 11.4, 3.11: 상품 정보는 채우고 가격·사진은 비운다 (이전 사진은 자동완성 경로만). 원본은 건드리지 않는다.
 export function prefill(rec: PriceRecordView, mode: PrefillMode, now: Date = new Date()): RegisterDraft {
   const d = emptyDraft(now);
   d.productName = copyField(rec.productName);

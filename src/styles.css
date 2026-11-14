@@ -70,6 +70,7 @@ button.danger { border-color: #c0392b; color: #c0392b; }
 .badge-online { background: #2c5aa0; color: #fff; }
 .badge-mine { background: #f1c40f; color: #222; }
 .badge-old { background: #ddd; color: #444; }
+.badge-reused { background: #2e7d32; color: #fff; margin-bottom: 6px; }
 
 .tabs { display: flex; gap: 4px; margin: 8px 0; }
 .tabs button { flex: 1 1 0; min-width: 0; font-size: 0.85rem; padding: 6px 4px; }

@@ -107,7 +107,7 @@ describe('가격 등록 화면 (작업 5)', () => {
     expect(screen.getByLabelText('배송비')).toBeInTheDocument();
   });
 
-  it('요구 3.1~3.4: 품명 자동완성을 고르면 상품 정보만 채운다', async () => {
+  it('요구 3.1~3.4: 품명 자동완성을 고르면 상품 정보를 채우고 가격·판매처는 비운다', async () => {
     await saveRecord(base(), photo);
     const u = user();
     renderAt('/register');
@@ -189,5 +189,81 @@ describe('가격 등록 화면 (작업 5)', () => {
     await u.click(screen.getByRole('button', { name: '저장' }));
     await waitFor(() => expect(screen.getByTestId('where').textContent).toContain(`mine=${id}`));
     expect((await getRecordView(id))!.price).toBe(3000);
+  });
+
+  describe('이전 사진 불러오기 (작업 11, 요구 3.7~3.11)', () => {
+    const pickTofu = async (u: ReturnType<typeof user>) => {
+      await u.type(screen.getByLabelText('품명 입력'), '국산');
+      await u.click(await screen.findByRole('button', { name: /풀무원 국산콩 두부 300g ×2/ }));
+    };
+    const fillPriceStore = async (u: ReturnType<typeof user>) => {
+      await u.type(screen.getByLabelText(/^가격/), '2900');
+      await u.type(screen.getByLabelText(/^판매처/), '동네마트');
+    };
+
+    it('인수 23, 요구 3.7, 3.8: 가장 최근 사진을 "이전 사진"으로 채우고 새로 올리지 않아도 저장한다', async () => {
+      const old = await saveRecord(base({ purchasedAt: '2026-01-01' }), photo);
+      const latest = await saveRecord(base({ purchasedAt: '2026-10-01', storeName: '롯데' }), { ...photo, thumb: new Blob(['latest']) });
+      const latestPhoto = (await getRecordView(latest.id))!.photoId;
+      expect((await getRecordView(old.id))!.photoId).not.toBe(latestPhoto);
+      const u = user();
+      renderAt('/register');
+      await pickTofu(u);
+      expect(await screen.findByTestId('reused-photo')).toHaveTextContent('이전 사진');
+      expect(await screen.findByRole('img', { name: '이전 사진' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /다시 촬영/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /갤러리에서 선택/ })).toBeInTheDocument();
+      await fillPriceStore(u);
+      await waitFor(() => expect(screen.getByRole('button', { name: '저장' })).toBeEnabled());
+      await u.click(screen.getByRole('button', { name: '저장' }));
+      await waitFor(() => expect(screen.getByTestId('where').textContent).toMatch(/mine=/));
+      const mine = screen.getByTestId('where').textContent!.split('mine=')[1];
+      expect((await getRecordView(mine))!.photoId).toBe(latestPhoto);
+      expect(await db.photos.count()).toBe(2); // 새 Photo를 만들지 않았다
+    });
+
+    it('인수 24, 요구 3.9: 갤러리에서 바꾸면 새 사진으로 저장하고 이전 기록 사진은 그대로', async () => {
+      const old = await saveRecord(base(), photo);
+      const oldPhoto = (await getRecordView(old.id))!.photoId;
+      const u = user();
+      renderAt('/register');
+      await pickTofu(u);
+      await screen.findByTestId('reused-photo');
+      fireEvent.change(screen.getByTestId('photo-input'), { target: { files: [new File(['x'], 'a.png', { type: 'image/png' })] } });
+      await waitFor(() => expect(screen.queryByTestId('reused-photo')).toBeNull());
+      await fillPriceStore(u);
+      await waitFor(() => expect(screen.getByRole('button', { name: '저장' })).toBeEnabled());
+      await u.click(screen.getByRole('button', { name: '저장' }));
+      await waitFor(() => expect(screen.getByTestId('where').textContent).toMatch(/mine=/));
+      const mine = screen.getByTestId('where').textContent!.split('mine=')[1];
+      expect((await getRecordView(mine))!.photoId).not.toBe(oldPhoto);
+      expect((await getRecordView(old.id))!.photoId).toBe(oldPhoto);
+      expect(await db.photos.get(oldPhoto)).toBeDefined();
+      expect(await db.photos.count()).toBe(2);
+    });
+
+    it('인수 25, 요구 3.10: 이전 사진이 없으면 빈 칸이고 사진 없이는 저장할 수 없다', async () => {
+      const old = await saveRecord(base(), photo);
+      await db.photos.delete((await getRecordView(old.id))!.photoId);
+      const u = user();
+      renderAt('/register');
+      await pickTofu(u);
+      await fillPriceStore(u);
+      expect(screen.getByLabelText(/^품목/)).toHaveValue('두부');
+      expect(screen.getByText('사진 없음')).toBeInTheDocument();
+      expect(screen.queryByTestId('reused-photo')).toBeNull();
+      expect(screen.getByRole('button', { name: '저장' })).toBeDisabled();
+      expect(screen.getByText('사진이 있어야 저장할 수 있어요')).toBeInTheDocument();
+    });
+
+    for (const mode of ['search', 'clone', 'refresh'] as const) {
+      it(`인수 26, 요구 3.11: ${mode} 경로로 연 등록 화면은 사진이 비어 있다`, async () => {
+        const { id } = await saveRecord(base({ storeName: '쿠팡', storeIsOnline: true }), photo);
+        renderAt(`/register?from=${id}&mode=${mode}`);
+        await waitFor(() => expect(screen.getByLabelText(/^품목/)).toHaveValue('두부'));
+        expect(screen.getByText('사진 없음')).toBeInTheDocument();
+        expect(screen.queryByTestId('reused-photo')).toBeNull();
+      });
+    }
   });
 });
