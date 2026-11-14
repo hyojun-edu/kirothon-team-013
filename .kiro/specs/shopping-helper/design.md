@@ -113,6 +113,14 @@ function prefill(rec: PriceRecordView, mode: PrefillMode): RegisterDraft;
 - 필드 순서: 품명 → 품목 → 원산지 → 브랜드 → 포장단위 → 단위용량 → 번들묶음 → 가격 → 판매처 → (배송비) → 날짜 → 사진.
 - `NAField`: 값 입력과 "해당사항 없음" 체크를 한 컴포넌트로 묶는다. 상태는 `{ kind: 'value', value } | { kind: 'na' } | { kind: 'empty' }`.
 - 품명 자동완성: 입력 150ms debounce 후 Dexie 인덱스로 prefix 검색. 선택 시 `prefill`과 같은 규칙으로 채운다.
+- 이전 사진 불러오기 (요구 3.7~3.11): 자동완성 선택 시 해당 `productId`의 `PriceRecord`를 `purchasedAt` 내림차순으로 찾아 첫 기록의 `photoId`를 draft의 `photo`에 넣는다.
+  - draft의 사진 상태: `{ kind: 'reused', photoId } | { kind: 'new', blob } | { kind: 'empty' }`. 스키마 변경은 없다.
+  - `reused`이면 저장 시 새 `Photo`를 만들지 않고 같은 `photoId`를 새 `PriceRecord`가 가리킨다. 사진 칸에 "이전 사진" 표시를 붙인다.
+  - 사용자가 사진을 바꾸면 `new`로 바뀌고 저장 시 새 `Photo`가 생긴다. 이전 기록은 바뀌지 않는다.
+  - `reused`는 필수 사진 검증을 통과한 것으로 본다.
+  - 이전 기록의 사진이 삭제되어 없으면 `empty`로 둔다.
+  - `prefill`의 `search`, `clone`, `refresh` 모드는 사진을 계속 비운다 (위 표). 자동완성 경로만 사진을 불러온다.
+  - 사진을 가진 기록을 삭제할 때, 다른 기록이 같은 `photoId`를 쓰고 있으면 `Photo`는 지우지 않는다.
 - 하단 비교 바: 가격과 용량이 유효해지면 `buildResult`를 호출해 순위와 차이를 표시한다. 저장하지 않는다.
 - 저장 버튼은 필수 7개가 유효할 때만 활성화한다.
 
