@@ -242,3 +242,30 @@ type Field<T> = { kind: 'value'; value: T } | { kind: 'na' };      // 미입력�
 - **두부 구성표**: `spec.md` 14.2의 항목을 모두 만족하도록 `seed.ts`에 표로 정의하고, 단위 테스트에서 `buildResult`로 각 항목(번들 다름, 브랜드 3개 이상, 국산·수입, 온라인 2건 이상, 이력, 오래된 가격, 비교 불가, 필터에 따라 1위가 바뀜)을 확인한다 (요구 15.6).
 - **데모 표시**: `DemoBadge`는 데모 모드에서만 렌더하고, 하단 바와 겹치지 않는 맨 위 구석에 작고 옅게 둔다 (요구 15.8).
 - **테스트**: 단위(구성표, 날짜 상대값, 비어 있을 때만 넣기, reset), 종단(`demo` 모드 서버에서 품목 5개 이상 표시, `?reset=1` 복원), 빌드 검사(일반 `dist/`에 샘플 없음).
+
+## 홈 빠른 비교와 자동완성 후보 (요구 16)
+- **후보 조회** (`domain/candidates.ts`, 순수 함수):
+  ```ts
+  interface Candidate {
+    productId; bundleCount; record: PriceRecordView; // 그 조합의 가장 최근 기록
+    productName: string | null; itemName; brand; origin; packUnit; unitAmount;
+    price: number; unitPrice: UnitPrice | null;
+    storeName; isOnline; purchasedAt; recordCount: number; photoId?: string;
+  }
+  function findCandidates(records: PriceRecordView[], text: string, limit = 8): { items: Candidate[]; more: number };
+  ```
+  - 묶는 키: `productId + bundleCount`. 키마다 `purchasedAt`이 가장 늦은 기록이 대표다. `recordCount`는 그 키의 기록 수 (요구 16.4).
+  - 일치: `text`를 공백으로 나눠 모든 조각이 품명, 품목, 브랜드 중 하나에 들어 있으면 후보 (요구 16.5). 점수: 품명 앞부분 일치 > 품명 안 일치 > 품목/브랜드 일치.
+  - 정렬: 점수 → `purchasedAt` 내림차순 → `recordCount` 내림차순. 앞의 `limit`개만 `items`, 나머지 수는 `more`.
+  - 품명이 N/A이면 `productName`은 `null`이고 화면은 `itemName`을 1줄에 쓴다.
+- **조회 방법**: 입력 150ms debounce 후 Dexie에서 품명/품목/브랜드 인덱스(또는 메모리에 읽은 목록)로 찾는다. 기록 1,000건에서 100ms 안에 끝나야 한다.
+- **`CandidateList` 컴포넌트**: 홈과 등록 화면이 같이 쓴다 (요구 16.13). `role="listbox"`, 각 줄 `role="option"`, 높이 56px 이상. 1줄 품명(일치 글자 `<mark>` 강조), 2줄 품목·브랜드·원산지, 3줄 용량×번들·가격·단위가격(말줄임 없음), 4줄 판매처·날짜·기록 건수. 날짜는 "3일 전"처럼 상대값 + 90일 넘으면 "오래된 가격" 작은 라벨. 길어지는 1, 2, 4줄만 말줄임 (요구 16.14).
+- **홈 빠른 비교 폼** (`features/home/QuickCompare.tsx`):
+  - 상태: `QuickDraft = { productName: Field<string>; itemName: string; brand: Field<string>; packUnit: string; unitAmount: Field<...>; bundleCount: number; price: number | null; origin: ...; priceIsPrevious: boolean }`.
+  - 후보 선택 → `draftFromCandidate(c)`로 채우고 `priceIsPrevious = true`. 사용자가 가격을 고치면 `false`로 바꿔 "이전 가격" 표시를 뗀다 (요구 16.6).
+  - "비교하기": `anchor`(내 상품)를 라우터 상태로 넘겨 결과 화면으로 이동. 저장하지 않는다 (요구 16.10).
+  - "이 가격으로 등록": `RegisterDraft`를 만들어 등록 화면으로. 사진은 후보의 `photoId`를 `reused`로 넣는다 (요구 16.12).
+  - 후보 없이 직접 입력: 품목만 있으면 "비교하기" 활성 (요구 16.8).
+- **결과 화면 시작 탭**: `anchor`가 있으면 `anchorMatches = records.some(sameProduct(anchor))`. 있으면 `exact`, 없으면 `allItem`으로 시작 (요구 16.11). `anchor`가 있으면 프리셋 탭 두 개가 켜지고 내 상품 비교 바가 보인다 (요구 16.10, 8.4).
+- **등록 화면**: 품명 자동완성을 `CandidateList`로 바꾼다. 후보 선택 시 `prefill`(자동완성 모드)에 가격과 `priceIsPrevious`를 더한다 (요구 3.4, 16.13). `prefill`의 `search`, `clone`, `refresh` 모드는 그대로 가격을 비운다.
+- **테스트**: 단위(`findCandidates`: 키 묶기, 번들 다름은 별개 후보, 일치, 정렬, 8개 제한, 품명 N/A), 컴포넌트(`CandidateList`의 모든 정보 표시, 가격 "이전 가격" 표시가 가격 수정 시 사라짐, 후보 없음 안내), 종단(홈에서 품명 입력 → 후보 선택 → 칸 채움 → 비교하기 → 탭 두 개 켜짐, 내 상품 비교 바 보임; 폭 360px에서 후보 줄이 가로 스크롤 없이 보임).
