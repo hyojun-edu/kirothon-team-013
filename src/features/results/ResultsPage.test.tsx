@@ -236,3 +236,30 @@ describe('검색 결과 화면 (작업 6)', () => {
     expect(screen.getAllByTestId('row')).toHaveLength(45);
   });
 });
+
+describe('홈 빠른 비교에서 온 결과 화면 (요구 16.10, 16.11)', () => {
+  const anchor = (amount: number) => ({
+    productName: { kind: 'value', value: '국산콩 두부' },
+    brand: { kind: 'value', value: '풀무원' },
+    unitAmount: { kind: 'value', value: { amount, unit: 'g' } },
+    unitPrice: { value: 500, per: 100, type: 'g' },
+  });
+  it('똑같은 상품 기록이 있으면 "똑같은 상품" 탭으로 시작하고 비교 바와 "이 가격으로 등록"', async () => {
+    const { itemId } = await saveRecord(d(), photo);
+    await saveRecord(d({ productName: { kind: 'value', value: '부침두부' }, storeName: '롯데' }), photo);
+    renderAt(`/items/${itemId}`, { draftAnchor: anchor(300), quick: true, registerDraft: d({ storeName: '' }), priceIsPrevious: true });
+    await waitFor(() => expect(screen.getByRole('tab', { name: '똑같은 상품' })).toHaveAttribute('aria-selected', 'true'));
+    expect(screen.getByRole('tab', { name: '용량 무관' })).not.toHaveAttribute('aria-disabled');
+    await waitFor(() => expect(screen.getAllByTestId('row')).toHaveLength(1));
+    expect(screen.getByRole('region', { name: '내 상품 비교' })).toHaveTextContent('2건 중 1위');
+    await userEvent.click(screen.getByRole('button', { name: '이 가격으로 등록' }));
+    expect(screen.getByTestId('where')).toHaveTextContent('/register');
+  });
+  it('똑같은 상품 기록이 없으면 "품목 전체" 탭으로 시작', async () => {
+    const { itemId } = await saveRecord(d(), photo);
+    renderAt(`/items/${itemId}`, { draftAnchor: anchor(999), quick: true });
+    await waitFor(() => expect(screen.getAllByTestId('row')).toHaveLength(1));
+    expect(screen.getByRole('tab', { name: '품목 전체' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: '똑같은 상품' })).not.toHaveAttribute('aria-disabled');
+  });
+});

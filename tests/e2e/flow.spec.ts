@@ -85,7 +85,7 @@ test('전체 흐름', async ({ page, context }) => {
   await expect(page.getByLabel(/^가격/)).toHaveValue('');
   await page.getByLabel(/^가격/).fill('8400');
   await page.getByTestId('photo-input').setInputFiles(PHOTO);
-  await page.getByRole('button', { name: '저장' }).click();
+  await page.getByRole('button', { name: '저장', exact: true }).click();
   await page.waitForURL(/\?mine=/);
   const coupang = page.getByTestId('row').filter({ hasText: '쿠팡' });
   await expect(coupang).toHaveCount(1);
@@ -105,7 +105,7 @@ test('품명 자동완성으로 이전 사진을 불러와 저장하고, 바꾸�
   const pick = async () => {
     await page.goto('/register');
     await page.getByLabel('품명 입력').fill('국산');
-    await page.getByRole('button', { name: /풀무원 국산콩 두부 300g ×2/ }).click();
+    await page.getByRole('button', { name: /국산콩 두부.*풀무원.*300g×2/ }).first().click();
     await expect(page.getByTestId('reused-photo')).toHaveText('이전 사진');
     await expect(page.getByRole('img', { name: '이전 사진' })).toBeVisible();
     await page.getByLabel(/^가격/).fill('3000');
@@ -128,7 +128,7 @@ test('품명 자동완성으로 이전 사진을 불러와 저장하고, 바꾸�
   await noHorizontalScroll(page);
   await touchTargetsOk(page);
   await expect(page.getByTestId('missing')).toHaveCount(0);
-  await page.getByRole('button', { name: '저장' }).click();
+  await page.getByRole('button', { name: '저장', exact: true }).click();
   await page.waitForURL(/\?mine=/);
   await expect(page.getByTestId('row')).toHaveCount(2);
   expect(await photoCount()).toBe(1);
@@ -140,8 +140,8 @@ test('품명 자동완성으로 이전 사진을 불러와 저장하고, 바꾸�
   await page.getByTestId('photo-input').setInputFiles(PHOTO);
   await expect(page.getByTestId('reused-photo')).toHaveCount(0);
   await page.getByLabel(/^판매처/).fill('홈플러스');
-  await expect(page.getByRole('button', { name: '저장' })).toBeEnabled();
-  await page.getByRole('button', { name: '저장' }).click();
+  await expect(page.getByRole('button', { name: '저장', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: '저장', exact: true }).click();
   await page.waitForURL(/\?mine=/);
   await expect(page.getByTestId('row')).toHaveCount(3);
   expect(await photoCount()).toBe(2);

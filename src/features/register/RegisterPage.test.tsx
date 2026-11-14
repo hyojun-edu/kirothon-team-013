@@ -107,20 +107,25 @@ describe('가격 등록 화면 (작업 5)', () => {
     expect(screen.getByLabelText('배송비')).toBeInTheDocument();
   });
 
-  it('요구 3.1~3.4: 품명 자동완성을 고르면 상품 정보를 채우고 가격·판매처는 비운다', async () => {
+  it('요구 3.1~3.4, 16.13: 품명 자동완성 후보를 고르면 상품 정보와 이전 가격을 채우고 판매처는 비운다', async () => {
     await saveRecord(base(), photo);
     const u = user();
     renderAt('/register');
     await u.type(screen.getByLabelText('품명 입력'), '국산');
-    await u.click(await screen.findByRole('button', { name: /풀무원 국산콩 두부 300g ×2/ }));
+    await u.click(await screen.findByRole('button', { name: /국산콩 두부.*풀무원.*300g×2/ }));
     expect(screen.getByLabelText(/^품목/)).toHaveValue('두부');
     expect(screen.getByLabelText('브랜드 입력')).toHaveValue('풀무원');
     expect(screen.getByLabelText('단위용량')).toHaveValue(300);
     expect(screen.getByLabelText(/^번들묶음/)).toHaveValue(2);
     expect(screen.getByLabelText(/^포장단위/)).toHaveValue('팩');
     expect(screen.getByLabelText('국산')).toBeChecked();
-    expect(screen.getByLabelText(/^가격/)).toHaveValue(null);
+    // 요구 3.4(변경): 가격은 "이전 가격"으로 채우고, 고치면 표시를 뗀다
+    expect(screen.getByLabelText(/^가격/)).toHaveValue(3480);
+    expect(screen.getByTestId('prev-price')).toHaveTextContent('이전 가격');
     expect(screen.getByLabelText(/^판매처/)).toHaveValue('');
+    await u.clear(screen.getByLabelText(/^가격/));
+    await u.type(screen.getByLabelText(/^가격/), '3000');
+    expect(screen.queryByTestId('prev-price')).not.toBeInTheDocument();
     // 요구 3.3: 고칠 수 있다
     await u.clear(screen.getByLabelText(/^번들묶음/));
     await u.type(screen.getByLabelText(/^번들묶음/), '6');
@@ -133,7 +138,7 @@ describe('가격 등록 화면 (작업 5)', () => {
     renderAt('/register');
     await u.click(screen.getAllByLabelText('해당사항 없음')[0]);
     await u.type(screen.getByLabelText(/^품목/), '양');
-    await u.click(await screen.findByRole('button', { name: /양파/ }));
+    await u.click(await screen.findByRole('button', { name: /^양파/ }));
     expect(screen.getByLabelText(/^포장단위/)).toHaveValue('망');
   });
 
@@ -194,9 +199,10 @@ describe('가격 등록 화면 (작업 5)', () => {
   describe('이전 사진 불러오기 (작업 11, 요구 3.7~3.11)', () => {
     const pickTofu = async (u: ReturnType<typeof user>) => {
       await u.type(screen.getByLabelText('품명 입력'), '국산');
-      await u.click(await screen.findByRole('button', { name: /풀무원 국산콩 두부 300g ×2/ }));
+      await u.click(await screen.findByRole('button', { name: /국산콩 두부.*풀무원.*300g×2/ }));
     };
     const fillPriceStore = async (u: ReturnType<typeof user>) => {
+      await u.clear(screen.getByLabelText(/^가격/)); // 요구 3.4: 이전 가격이 채워져 있다
       await u.type(screen.getByLabelText(/^가격/), '2900');
       await u.type(screen.getByLabelText(/^판매처/), '동네마트');
     };

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Autocomplete } from '../../components/Autocomplete';
+import { CandidateInput } from '../../components/CandidateList';
+import type { Candidate } from '../../domain/candidates';
 import { NAField } from '../../components/NAField';
 import { PhotoPicker } from '../../components/PhotoPicker';
 import { buildResult, emptyFilters } from '../../domain/compare';
@@ -9,7 +11,7 @@ import { buildSearchQuery } from '../../domain/searchQuery';
 import { emptyDraft, type InputUnit, type PriceRecordView, type RegisterDraft } from '../../domain/types';
 import { formatUnitPrice, formatWon, unitPrice } from '../../domain/unitPrice';
 import { INPUT_UNITS } from '../../domain/units';
-import { getPhoto, getRecordView, findItemByName, latestPhotoId, listRecordViews, saveRecord, searchItems, searchProducts, searchStores, updateRecord } from '../../data/repositories';
+import { getPhoto, getRecordView, findItemByName, latestPhotoId, listRecordViews, saveRecord, searchItems, searchStores, updateRecord } from '../../data/repositories';
 import { processPhoto } from '../../data/image';
 import type { Item, Store } from '../../data/db';
 import { OnlineSearch } from '../search/OnlineSearch';
@@ -18,10 +20,10 @@ import { validateDraft } from './validate';
 const PACK_UNITS = ['개', '팩', '봉', '병', '캔', '박스', 'kg', '단'];
 const num = (s: string) => (s.trim() === '' ? null : Number(s));
 
-/** 고른 기존 상품으로 상품 정보를 채운다. 가격, 판매처, 날짜는 그대로 (요구 3.2, 3.4). 사진은 onSelectProduct가 불러온다 (요구 3.7) */
+/** 고른 후보로 상품 정보와 이전 가격을 채운다. 판매처, 날짜는 그대로 (요구 3.2, 3.4, 16.13). 사진은 onSelectProduct가 불러온다 (요구 3.7) */
 function applyProduct(d: RegisterDraft, rec: PriceRecordView): RegisterDraft {
   const p = prefill(rec, 'clone');
-  return { ...d, productName: p.productName, itemName: p.itemName, origin: p.origin, brand: p.brand, packUnit: p.packUnit, unitAmount: p.unitAmount, bundleCount: p.bundleCount };
+  return { ...d, productName: p.productName, itemName: p.itemName, origin: p.origin, brand: p.brand, packUnit: p.packUnit, unitAmount: p.unitAmount, bundleCount: p.bundleCount, price: rec.price };
 }
 
 export function RegisterPage() {
@@ -30,7 +32,10 @@ export function RegisterPage() {
   const [params] = useSearchParams();
   const from = params.get('from');
   const mode = (params.get('mode') ?? 'clone') as PrefillMode;
-  const [draft, setDraft] = useState<RegisterDraft>(() => ({ ...emptyDraft(), itemName: params.get('item') ?? '' }));
+  // 요구 16.12: 홈 빠른 비교의 "이 가격으로 등록"은 입력값과 이전 사진을 넘겨준다
+  const navState = useLocation().state as { registerDraft?: RegisterDraft; priceIsPrevious?: boolean } | null;
+  const [draft, setDraft] = useState<RegisterDraft>(() => navState?.registerDraft ?? { ...emptyDraft(), itemName: params.get('item') ?? '' });
+  const [pricePrev, setPricePrev] = useState(!!navState?.registerDraft && !!navState.priceIsPrevious);
   const [preview, setPreview] = useState<Blob | null>(null);
   const pickSeq = useRef(0);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -64,7 +69,9 @@ export function RegisterPage() {
   }, [draft.photo]);
 
   // 요구 3.7, 3.10: 자동완성으로 고른 상품의 가장 최근 사진을 불러온다. 이미 새로 찍은 사진은 덮지 않는다.
-  const onSelectProduct = (r: PriceRecordView, na = false) => {
+  const onSelectProduct = (c: Candidate, na = false) => {
+    const r = c.record;
+    setPricePrev(true);
     setDraft((d) => ({ ...applyProduct(d, r), ...(na ? { productName: { kind: 'na' as const } } : {}) }));
     const seq = ++pickSeq.current;
     latestPhotoId(r.productId).then((photoId) => {
@@ -157,15 +164,8 @@ export function RegisterPage() {
     }
   };
 
-  const fetchProducts = useCallback((q: string) => searchProducts(q), []);
-  const fetchItemProducts = useCallback((q: string) => searchProducts(q, { byItem: true }), []);
   const fetchItems = useCallback((q: string) => searchItems(q), []);
   const fetchStores = useCallback((q: string) => searchStores(q), []);
-  const productLabel = (r: PriceRecordView) =>
-    [r.brand?.kind === 'value' ? r.brand.value : '', r.productName?.kind === 'value' ? r.productName.value : r.itemName, r.unitAmount?.kind === 'value' ? `${r.unitAmount.value.amount}${r.unitAmount.value.unit === 'ea' ? '개' : r.unitAmount.value.unit}` : '', `×${r.bundleCount}`]
-      .filter(Boolean)
-      .join(' ');
-
   return (
     <main className="page">
       <div className="header">
@@ -186,28 +186,24 @@ export function RegisterPage() {
           <h2>상품 정보</h2>
           {/* 요구 1.4: 품명부터 */}
           <NAField label="품명" state={draft.productName} onChange={(s) => set('productName', s)} hint="농산품처럼 품명이 없으면 해당사항 없음">
-            <Autocomplete<PriceRecordView>
+            {/* 요구 16.13: 홈과 같은 후보 목록 */}
+            <CandidateInput
               label={<span className="sr-only">품명 입력</span>}
               value={draft.productName.kind === 'value' ? draft.productName.value : ''}
               onChange={(v) => set('productName', v ? { kind: 'value', value: v } : { kind: 'empty' })}
-              fetch={fetchProducts}
-              itemKey={(r) => r.productId}
-              render={productLabel}
-              onSelect={(r) => onSelectProduct(r)}
+              onSelect={(c) => onSelectProduct(c)}
               placeholder="예: 국산콩으로 만든 두부"
             />
           </NAField>
 
           {draft.productName.kind === 'na' ? (
-            <Autocomplete<PriceRecordView>
+            <CandidateInput
               label={<>품목 <span className="req">필수</span></>}
               value={draft.itemName}
               onChange={(v) => set('itemName', v)}
-              fetch={fetchItemProducts}
-              itemKey={(r) => r.productId}
-              render={productLabel}
-              onSelect={(r) => onSelectProduct(r, true)}
+              onSelect={(c) => onSelectProduct(c, true)}
               placeholder="예: 양파"
+              naOnly
             />
           ) : (
             <Autocomplete<Item>
@@ -307,8 +303,21 @@ export function RegisterPage() {
           <div className="field">
             <label className="lbl" htmlFor="price">
               가격 (원) <span className="req">필수</span>
+              {pricePrev && <span className="badge badge-old prev-price" data-testid="prev-price">이전 가격</span>}
             </label>
-            <input id="price" type="number" inputMode="numeric" min="0" step="1" value={draft.price ?? ''} onChange={(e) => set('price', num(e.target.value))} placeholder="3480" />
+            <input
+              id="price"
+              type="number"
+              inputMode="numeric"
+              min="0"
+              step="1"
+              value={draft.price ?? ''}
+              onChange={(e) => {
+                setPricePrev(false); // 요구 16.6: 고치면 "이전 가격" 표시를 뗀다
+                set('price', num(e.target.value));
+              }}
+              placeholder="3480"
+            />
             {bad('price', draft.price !== null)}
           </div>
 

@@ -6,6 +6,7 @@ import { PhotoZoom } from '../../components/Thumb';
 import { useAsync } from '../../components/useAsync';
 import { buildResult, emptyFilters, originLabel, type Anchor, type Filters, type Preset } from '../../domain/compare';
 import { buildSearchQuery } from '../../domain/searchQuery';
+import type { RegisterDraft } from '../../domain/types';
 import { formatUnitPrice, formatWon } from '../../domain/unitPrice';
 import { getItem, listRecordViews } from '../../data/repositories';
 import { OnlineSearch, pendingSearch, rememberSearch, type PendingSearch } from '../search/OnlineSearch';
@@ -36,7 +37,8 @@ export function ResultsPage() {
   const location = useLocation();
   const nav = useNavigate();
   const mine = params.get('mine') ?? undefined;
-  const draftAnchor = (location.state as { draftAnchor?: Anchor } | null)?.draftAnchor;
+  const navState = location.state as { draftAnchor?: Anchor; quick?: boolean; registerDraft?: RegisterDraft; priceIsPrevious?: boolean } | null;
+  const draftAnchor = navState?.draftAnchor;
   const anchor: Anchor | undefined = mine ? { recordId: mine } : draftAnchor;
 
   const item = useAsync(() => getItem(itemId), [itemId]);
@@ -45,6 +47,14 @@ export function ResultsPage() {
   const [view, setView] = useState(() => loadViewState(itemId));
   useEffect(() => saveViewState(itemId, view), [itemId, view]);
   const preset: Preset = anchor ? view.preset : 'allItem';
+  // 요구 16.11: 홈 빠른 비교로 오면 똑같은 상품 기록이 있으면 "똑같은 상품", 없으면 "품목 전체"로 시작
+  const quickStarted = useRef(false);
+  useEffect(() => {
+    if (!navState?.quick || !records || !draftAnchor || quickStarted.current) return;
+    quickStarted.current = true;
+    const exact = buildResult(records, { preset: 'exact', anchor: draftAnchor, filters: emptyFilters(), sort: 'unitPrice', showHistory: false });
+    setView((v) => ({ ...v, preset: exact.rows.length + exact.incomparable.length > 0 ? 'exact' : 'allItem' }));
+  }, [navState?.quick, records, draftAnchor]);
   const setFilters = (f: Filters) => setView((v) => ({ ...v, filters: f }));
   const [visible, setVisible] = useState(PAGE);
   const [zoom, setZoom] = useState<string | null>(null);
@@ -247,9 +257,15 @@ export function ResultsPage() {
       {/* G. 하단 고정 버튼 */}
       {records && records.length > 0 && (
         <div className="bottom-bar">
-          <button type="button" className="primary" onClick={() => nav(`/register?item=${encodeURIComponent(item?.name ?? '')}`)}>
-            가격 등록
-          </button>
+          {navState?.registerDraft ? (
+            <button type="button" className="primary" onClick={() => nav('/register', { state: { registerDraft: navState.registerDraft, priceIsPrevious: navState.priceIsPrevious } })}>
+              이 가격으로 등록
+            </button>
+          ) : (
+            <button type="button" className="primary" onClick={() => nav(`/register?item=${encodeURIComponent(item?.name ?? '')}`)}>
+              가격 등록
+            </button>
+          )}
           <OnlineSearch query={query} onOpened={onSearched} />
         </div>
       )}

@@ -6,8 +6,9 @@ import type { Item } from '../../data/db';
 import { findItemByName, recentRecords, searchItems } from '../../data/repositories';
 import { formatUnitPrice, formatWon, unitPrice } from '../../domain/unitPrice';
 import { fmtDate, nameText } from '../results/format';
+import { QuickCompare } from './QuickCompare';
 
-// 화면 1. 홈: 품목 검색, 최근 기록, 가격 등록
+// 화면 1. 홈: 빠른 비교(요구 16), 품목 검색, 최근 기록, 가격 등록
 export function HomePage() {
   const nav = useNavigate();
   const [q, setQ] = useState('');
@@ -25,6 +26,7 @@ export function HomePage() {
         <h1>장보기 도우미</h1>
         <p className="hint">할인가가 정말 싼지 단위가격으로 비교해요.</p>
       </div>
+      <QuickCompare />
       <form
         onSubmit={(e) => {
           e.preventDefault();

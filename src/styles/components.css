@@ -153,3 +153,11 @@ dialog { border-radius: var(--r-card); border: 1px solid var(--line); max-width:
 .nowrap { white-space: nowrap; }
 .cand-more { width: 100%; }
 .cand-none { margin: var(--sp-1) 0 0; }
+
+/* 홈 빠른 비교 (요구 16.1) */
+.quick-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: var(--sp-2); }
+.quick-grid > * { min-width: 0; }
+.quick-grid .lbl .badge { margin-left: var(--sp-1); }
+.quick-origin { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+.quick .row-btns { margin-top: var(--sp-2); }
+.prev-price { margin-left: var(--sp-1); vertical-align: middle; }
