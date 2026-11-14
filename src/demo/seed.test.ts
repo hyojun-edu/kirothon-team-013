@@ -1,5 +1,6 @@
 import { db } from '../data/db';
 import { listRecordViews } from '../data/repositories';
+import { findCandidates } from '../domain/candidates';
 import { buildResult, emptyFilters, type ResultQuery } from '../domain/compare';
 import { unitPrice } from '../domain/unitPrice';
 import { daysAgo, prepareDemo, SAMPLE, seed, TOFU, toDraft } from './seed';
@@ -84,5 +85,18 @@ describe('데모 샘플 (작업 14)', () => {
     await prepareDemo({ reset: true, now: NOW, makePhoto });
     expect(await db.records.count()).toBe(n);
     expect(await db.items.get('x')).toBeUndefined();
+  });
+
+  it('작업 15.7: 두부 300g×2와 300g×4, 온라인과 오프라인이 서로 다른 후보', async () => {
+    await seed({ now: NOW, makePhoto });
+    const { items } = findCandidates(await tofu(), '국산콩 두부');
+    const pul = items.filter((c) => c.brand === '풀무원' && c.unitAmount?.amount === 300);
+    const two = pul.find((c) => c.bundleCount === 2)!;
+    const four = pul.find((c) => c.bundleCount === 4)!;
+    expect(two.productId).toBe(four.productId); // 같은 상품, 번들만 다르다
+    expect(two.isOnline).toBe(false);
+    expect(four.isOnline).toBe(true);
+    expect(four.price).toBe(6200); // 가장 최근 기록이 대표
+    expect(four.recordCount).toBe(2);
   });
 });
