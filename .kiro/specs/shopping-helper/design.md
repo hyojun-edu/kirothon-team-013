@@ -211,3 +211,18 @@ type Field<T> = { kind: 'value'; value: T } | { kind: 'na' };      // 미입력�
 | 구글 검색 새 탭 | 쇼핑몰 직접 연동 | 사용자가 정한 범위. 구현이 가볍다 |
 | 순수 함수로 비교 로직 분리 | 컴포넌트 안에 계산 | 테스트 용이, 서버 이전 시 재사용 |
 | 갱신은 새 기록 추가 | 기존 기록 덮어쓰기 | 가격 이력 보존 |
+
+## 시각 디자인 (요구 14)
+규칙의 값과 이유는 `spec.md` 13절을 따른다. 여기서는 구현 방법만 정한다.
+
+- **토큰**: `src/styles/tokens.css`에 CSS 변수(`--primary`, `--primary-soft`, `--accent`, `--bg`, `--surface`, `--text`, `--text-sub`, `--line`, `--danger`, 간격 `--sp-1`~`--sp-6`, 모서리 `--r-card`, `--r-ctrl`, `--r-pill`)를 한 번만 정의한다. 컴포넌트 CSS와 TSX는 값을 직접 쓰지 않고 변수만 쓴다 (요구 14.1).
+- **파일 나누기**: 현재 `src/styles.css` 하나를 `tokens.css`(토큰), `base.css`(리셋, 글자), `components.css`(버튼, 탭, 칩, 카드), `pages.css`(화면별)로 나눈다. 동작은 바꾸지 않는다.
+- **프리셋 탭**: `role="tablist"`인 3열 그리드(`grid-template-columns: repeat(3, 1fr)`), 각 탭 `white-space: nowrap`. 탭 이름은 `PRESET_LABELS` 상수 한 곳에서 관리하고 전체 뜻은 `PRESET_HINTS`로 분리한다 (요구 14.3). 비활성 탭은 `aria-disabled`와 탭 시 안내 문구를 쓴다 (요구 14.4).
+- **줄바꿈 방지**: `.btn`, `.tab`, `.chip`, `.pill`에 `white-space: nowrap; overflow: hidden; text-overflow: ellipsis`. 폭이 모자라면 이름을 줄이고 글자 크기는 줄이지 않는다.
+- **결과 카드**: `ResultCard` 컴포넌트로 분리한다. 구조는 사진(64px) + 본문 열. 1위는 `data-rank="1"`과 클래스로 구분하고 색 외에 배지 글자를 함께 쓴다.
+- **필터 선택 시트**: 기존 MultiSelect 목록을 하단 시트(`dialog` 또는 `aria-modal`)로 연다. 닫기 버튼과 적용 버튼 44px 이상.
+- **하단 바**: `position: fixed; bottom: 0; padding-bottom: calc(12px + env(safe-area-inset-bottom))`. 본문에는 바 높이만큼 아래 여백을 준다. `index.html`에 `viewport-fit=cover`를 넣는다.
+- **등록 화면**: 카드 세 개(`<section>`)로 묶는다. 필드 순서, 검증, 자동완성 동작은 바꾸지 않는다 (요구 1, 2, 3).
+- **움직임**: 전환은 `transition: 150ms ease`만 쓰고 `@media (prefers-reduced-motion: reduce)`에서 모두 `none` (요구 14.10).
+- **검증**: 폭 360px 종단 테스트에 (a) 프리셋 탭, 필터 버튼, 하단 버튼의 높이가 한 줄 높이(줄 높이 × 1.2 이하)인지, (b) 1위 카드 요소 존재, (c) 가로 스크롤 없음을 추가한다. 명암비는 토큰 값 쌍을 계산하는 단위 테스트로 확인한다 (요구 14.9). 캡처는 Playwright로 `docs/screenshots/`에 저장한다 (요구 14.11).
+- **기존 동작 보호**: 이 작업은 모양만 바꾼다. 기존 단위, 컴포넌트, 종단 테스트가 그대로 통과해야 한다. 테스트가 글자 이름("같은 상품, 용량 무관")을 찾는 곳은 새 이름에 맞게 고친다.
