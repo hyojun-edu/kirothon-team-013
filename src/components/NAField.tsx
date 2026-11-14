@@ -17,16 +17,19 @@ export function NAField<T>({ label, state, onChange, children, hint }: Props<T>)
   return (
     <fieldset className="field" data-state={state.kind}>
       <legend>{label}</legend>
-      {!na && children}
-      <label className="na-check" htmlFor={id}>
-        <input
-          id={id}
-          type="checkbox"
-          checked={na}
-          onChange={(e) => onChange(e.target.checked ? { kind: 'na' } : { kind: 'empty' })}
-        />
-        해당사항 없음
-      </label>
+      {/* 요구 14.7: "해당사항 없음"은 입력칸 오른쪽 토글 알약 */}
+      <div className="na-row">
+        <div className="na-value">{!na && children}</div>
+        <label className="na-check na-pill" htmlFor={id}>
+          <input
+            id={id}
+            type="checkbox"
+            checked={na}
+            onChange={(e) => onChange(e.target.checked ? { kind: 'na' } : { kind: 'empty' })}
+          />
+          해당사항 없음
+        </label>
+      </div>
       {hint && <p className="hint">{hint}</p>}
     </fieldset>
   );

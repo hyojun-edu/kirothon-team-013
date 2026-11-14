@@ -21,8 +21,10 @@ export function HomePage() {
   };
   return (
     <main className="page">
-      <h1>장보기 도우미</h1>
-      <p className="hint">할인가가 정말 싼지 단위가격으로 비교해요.</p>
+      <div className="home-hero">
+        <h1>장보기 도우미</h1>
+        <p className="hint">할인가가 정말 싼지 단위가격으로 비교해요.</p>
+      </div>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -45,6 +47,7 @@ export function HomePage() {
       </form>
       {notFound && (
         <div className="empty">
+          <span className="empty-icon" aria-hidden="true">🛒</span>
           <p>아직 기록이 없어요</p>
           <button type="button" className="primary" onClick={() => nav(`/register?item=${encodeURIComponent(q)}`)}>
             가격 등록
@@ -53,20 +56,27 @@ export function HomePage() {
       )}
 
       <h2>최근 기록</h2>
-      {recent && recent.length === 0 && <p className="hint">아직 기록이 없어요. 첫 가격을 등록해 보세요.</p>}
+      {!recent && <div className="skeleton" aria-label="불러오는 중" />}
+      {recent && recent.length === 0 && (
+        <div className="empty">
+          <span className="empty-icon" aria-hidden="true">🧾</span>
+          <p className="hint">아직 기록이 없어요. 첫 가격을 등록해 보세요.</p>
+        </div>
+      )}
       <ul className="recent">
         {recent?.map((r) => {
           const up = unitPrice(r);
           return (
             <li key={r.id}>
               <Link to={`/items/${r.itemId}`}>
-                <span style={{ flex: 1, minWidth: 0 }}>
+                <span className="recent-body">
                   <strong>{r.itemName}</strong> · {nameText(r)}
                   <br />
                   <span className="sub">
-                    {formatWon(r.price)} {up && `· ${formatUnitPrice(up)}`} · {r.storeName} · {fmtDate(r.purchasedAt)}
+                    {formatWon(r.price)} · {r.storeName} · {fmtDate(r.purchasedAt)}
                   </span>
                 </span>
+                {up && <span className="recent-up">{formatUnitPrice(up)}</span>}
               </Link>
             </li>
           );

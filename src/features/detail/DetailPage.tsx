@@ -50,10 +50,11 @@ export function DetailPage() {
       {pending && <ReturnBar pending={pending} onClose={() => setPending(null)} />}
 
       <button type="button" className="detail-photo" aria-label="사진 크게 보기" onClick={() => setZoom(true)}>
-        {photoUrl ? <img src={photoUrl} alt="상품 사진" style={{ width: '100%', borderRadius: 10 }} /> : '사진'}
+        {photoUrl ? <img src={photoUrl} alt="상품 사진" /> : '사진'}
       </button>
       {zoom && <PhotoZoom photoId={rec.photoId} onClose={() => setZoom(false)} />}
 
+      <section className="card">
       {up && <p className="unit-price">{formatUnitPrice(up)}</p>}
       <dl className="fields">
         <dt>품목</dt><dd>{rec.itemName}</dd>
@@ -69,8 +70,9 @@ export function DetailPage() {
         <dt>날짜</dt><dd>{fmtDate(rec.purchasedAt)}</dd>
         {rec.note && (<><dt>메모</dt><dd>{rec.note}</dd></>)}
       </dl>
+      </section>
 
-      <div className="row-btns" style={{ flexDirection: 'column' }}>
+      <div className="detail-actions">
         <button type="button" className="primary" onClick={() => nav(`/register?from=${rec.id}&mode=clone`)}>
           이 기록으로 새로 등록
         </button>

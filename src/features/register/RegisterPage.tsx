@@ -181,175 +181,185 @@ export function RegisterPage() {
           save();
         }}
       >
-        {/* 요구 1.4: 품명부터 */}
-        <NAField label="품명" state={draft.productName} onChange={(s) => set('productName', s)} hint="농산품처럼 품명이 없으면 해당사항 없음">
-          <Autocomplete<PriceRecordView>
-            label={<span className="sr-only">품명 입력</span>}
-            value={draft.productName.kind === 'value' ? draft.productName.value : ''}
-            onChange={(v) => set('productName', v ? { kind: 'value', value: v } : { kind: 'empty' })}
-            fetch={fetchProducts}
-            itemKey={(r) => r.productId}
-            render={productLabel}
-            onSelect={(r) => onSelectProduct(r)}
-            placeholder="예: 국산콩으로 만든 두부"
-          />
-        </NAField>
+        {/* 요구 14.7: 상품 정보 / 가격 정보 / 사진 카드. 필드 순서는 요구 1.4 그대로 */}
+        <section className="card reg-card">
+          <h2>상품 정보</h2>
+          {/* 요구 1.4: 품명부터 */}
+          <NAField label="품명" state={draft.productName} onChange={(s) => set('productName', s)} hint="농산품처럼 품명이 없으면 해당사항 없음">
+            <Autocomplete<PriceRecordView>
+              label={<span className="sr-only">품명 입력</span>}
+              value={draft.productName.kind === 'value' ? draft.productName.value : ''}
+              onChange={(v) => set('productName', v ? { kind: 'value', value: v } : { kind: 'empty' })}
+              fetch={fetchProducts}
+              itemKey={(r) => r.productId}
+              render={productLabel}
+              onSelect={(r) => onSelectProduct(r)}
+              placeholder="예: 국산콩으로 만든 두부"
+            />
+          </NAField>
 
-        {draft.productName.kind === 'na' ? (
-          <Autocomplete<PriceRecordView>
-            label={<>품목 <span className="req">필수</span></>}
-            value={draft.itemName}
-            onChange={(v) => set('itemName', v)}
-            fetch={fetchItemProducts}
-            itemKey={(r) => r.productId}
-            render={productLabel}
-            onSelect={(r) => onSelectProduct(r, true)}
-            placeholder="예: 양파"
-          />
-        ) : (
-          <Autocomplete<Item>
-            label={<>품목 <span className="req">필수</span></>}
-            value={draft.itemName}
-            onChange={(v) => set('itemName', v)}
-            fetch={fetchItems}
-            itemKey={(i) => i.id}
-            render={(i) => i.name}
-            onSelect={(i) => set('itemName', i.name)}
-            placeholder="예: 두부"
-          />
-        )}
-
-        <NAField label="원산지" state={draft.origin} onChange={(s) => set('origin', s)}>
-          <div className="radio-row" role="radiogroup" aria-label="원산지 선택">
-            <label>
-              <input type="radio" name="origin" checked={draft.origin.kind === 'value' && draft.origin.value.type === 'domestic'} onChange={() => set('origin', { kind: 'value', value: { type: 'domestic' } })} />
-              국산
-            </label>
-            <label>
-              <input type="radio" name="origin" checked={draft.origin.kind === 'value' && draft.origin.value.type === 'import'} onChange={() => set('origin', { kind: 'value', value: { type: 'import' } })} />
-              수입
-            </label>
-          </div>
-          {draft.origin.kind === 'value' && draft.origin.value.type === 'import' && (
-            <input
-              aria-label="수입 국가"
-              placeholder="국가 (예: 미국)"
-              value={draft.origin.value.country ?? ''}
-              onChange={(e) => set('origin', { kind: 'value', value: { type: 'import', country: e.target.value || undefined } })}
+          {draft.productName.kind === 'na' ? (
+            <Autocomplete<PriceRecordView>
+              label={<>품목 <span className="req">필수</span></>}
+              value={draft.itemName}
+              onChange={(v) => set('itemName', v)}
+              fetch={fetchItemProducts}
+              itemKey={(r) => r.productId}
+              render={productLabel}
+              onSelect={(r) => onSelectProduct(r, true)}
+              placeholder="예: 양파"
+            />
+          ) : (
+            <Autocomplete<Item>
+              label={<>품목 <span className="req">필수</span></>}
+              value={draft.itemName}
+              onChange={(v) => set('itemName', v)}
+              fetch={fetchItems}
+              itemKey={(i) => i.id}
+              render={(i) => i.name}
+              onSelect={(i) => set('itemName', i.name)}
+              placeholder="예: 두부"
             />
           )}
-        </NAField>
 
-        <NAField label="브랜드" state={draft.brand} onChange={(s) => set('brand', s)}>
-          <input aria-label="브랜드 입력" value={draft.brand.kind === 'value' ? draft.brand.value : ''} onChange={(e) => set('brand', e.target.value ? { kind: 'value', value: e.target.value } : { kind: 'empty' })} placeholder="예: 풀무원" />
-        </NAField>
-
-        <div className="field">
-          <label className="lbl" htmlFor="packUnit">
-            포장단위 <span className="req">필수</span>
-          </label>
-          <input id="packUnit" list="pack-units" value={draft.packUnit} onChange={(e) => set('packUnit', e.target.value)} />
-          <datalist id="pack-units">
-            {PACK_UNITS.map((u) => (
-              <option key={u} value={u} />
-            ))}
-          </datalist>
-        </div>
-
-        <NAField label="단위용량 (1개의 양)" state={draft.unitAmount} onChange={(s) => set('unitAmount', s)} hint="없으면 1개당 가격으로 비교해요">
-          <div className="inline">
-            <input
-              aria-label="단위용량"
-              inputMode="decimal"
-              type="number"
-              min="0"
-              step="any"
-              value={draft.unitAmount.kind === 'value' ? String(draft.unitAmount.value.amount || '') : ''}
-              onChange={(e) => {
-                const unit = draft.unitAmount.kind === 'value' ? draft.unitAmount.value.unit : 'g';
-                set('unitAmount', e.target.value === '' ? { kind: 'empty' } : { kind: 'value', value: { amount: Number(e.target.value), unit } });
-              }}
-              placeholder="300"
-            />
-            <select
-              aria-label="용량 단위"
-              value={draft.unitAmount.kind === 'value' ? draft.unitAmount.value.unit : 'g'}
-              onChange={(e) => {
-                const amount = draft.unitAmount.kind === 'value' ? draft.unitAmount.value.amount : 0;
-                set('unitAmount', { kind: 'value', value: { amount, unit: e.target.value as InputUnit } });
-              }}
-            >
-              {INPUT_UNITS.map((u) => (
-                <option key={u} value={u}>
-                  {u === 'ea' ? '개' : u}
-                </option>
-              ))}
-            </select>
-          </div>
-          {bad('unitAmount', true)}
-        </NAField>
-
-        <div className="field">
-          <label className="lbl" htmlFor="bundle">
-            번들묶음 (몇 개 묶음) <span className="req">필수</span>
-          </label>
-          <input id="bundle" type="number" inputMode="numeric" min="1" step="1" value={draft.bundleCount ?? ''} onChange={(e) => set('bundleCount', num(e.target.value))} />
-          {bad('bundleCount', draft.bundleCount !== null)}
-        </div>
-
-        <div className="field">
-          <label className="lbl" htmlFor="price">
-            가격 (원) <span className="req">필수</span>
-          </label>
-          <input id="price" type="number" inputMode="numeric" min="0" step="1" value={draft.price ?? ''} onChange={(e) => set('price', num(e.target.value))} placeholder="3480" />
-          {bad('price', draft.price !== null)}
-        </div>
-
-        <Autocomplete<Store>
-          label={<>판매처 <span className="req">필수</span></>}
-          value={draft.storeName}
-          onChange={(v) => set('storeName', v)}
-          fetch={fetchStores}
-          itemKey={(s) => s.id}
-          render={(s) => (s.isOnline ? `${s.name} (온라인)` : s.name)}
-          onSelect={(s) => setDraft((d) => ({ ...d, storeName: s.name, storeIsOnline: s.isOnline }))}
-          placeholder="예: 이마트 구로점"
-        />
-        <label className="na-check">
-          <input type="checkbox" checked={draft.storeIsOnline} onChange={(e) => set('storeIsOnline', e.target.checked)} />
-          온라인 판매처
-        </label>
-
-        {/* 요구 1.5, 1.6: 온라인 판매처에서만 배송비 */}
-        {draft.storeIsOnline && (
-          <NAField label="배송비 (원)" state={draft.shippingFee} onChange={(s) => set('shippingFee', s)} hint="단위가격에 더해서 계산해요">
-            <input
-              aria-label="배송비"
-              type="number"
-              inputMode="numeric"
-              min="0"
-              value={draft.shippingFee.kind === 'value' ? draft.shippingFee.value : ''}
-              onChange={(e) => set('shippingFee', e.target.value === '' ? { kind: 'empty' } : { kind: 'value', value: Number(e.target.value) })}
-            />
-            {bad('shippingFee', true)}
+          <NAField label="원산지" state={draft.origin} onChange={(s) => set('origin', s)}>
+            <div className="radio-row" role="radiogroup" aria-label="원산지 선택">
+              <label>
+                <input type="radio" name="origin" checked={draft.origin.kind === 'value' && draft.origin.value.type === 'domestic'} onChange={() => set('origin', { kind: 'value', value: { type: 'domestic' } })} />
+                국산
+              </label>
+              <label>
+                <input type="radio" name="origin" checked={draft.origin.kind === 'value' && draft.origin.value.type === 'import'} onChange={() => set('origin', { kind: 'value', value: { type: 'import' } })} />
+                수입
+              </label>
+            </div>
+            {draft.origin.kind === 'value' && draft.origin.value.type === 'import' && (
+              <input
+                aria-label="수입 국가"
+                placeholder="국가 (예: 미국)"
+                value={draft.origin.value.country ?? ''}
+                onChange={(e) => set('origin', { kind: 'value', value: { type: 'import', country: e.target.value || undefined } })}
+              />
+            )}
           </NAField>
-        )}
 
-        <div className="field">
-          <label className="lbl" htmlFor="date">
-            날짜 <span className="req">필수</span>
+          <NAField label="브랜드" state={draft.brand} onChange={(s) => set('brand', s)}>
+            <input aria-label="브랜드 입력" value={draft.brand.kind === 'value' ? draft.brand.value : ''} onChange={(e) => set('brand', e.target.value ? { kind: 'value', value: e.target.value } : { kind: 'empty' })} placeholder="예: 풀무원" />
+          </NAField>
+
+          <div className="field">
+            <label className="lbl" htmlFor="packUnit">
+              포장단위 <span className="req">필수</span>
+            </label>
+            <input id="packUnit" list="pack-units" value={draft.packUnit} onChange={(e) => set('packUnit', e.target.value)} />
+            <datalist id="pack-units">
+              {PACK_UNITS.map((u) => (
+                <option key={u} value={u} />
+              ))}
+            </datalist>
+          </div>
+
+          <NAField label="단위용량 (1개의 양)" state={draft.unitAmount} onChange={(s) => set('unitAmount', s)} hint="없으면 1개당 가격으로 비교해요">
+            <div className="inline">
+              <input
+                aria-label="단위용량"
+                inputMode="decimal"
+                type="number"
+                min="0"
+                step="any"
+                value={draft.unitAmount.kind === 'value' ? String(draft.unitAmount.value.amount || '') : ''}
+                onChange={(e) => {
+                  const unit = draft.unitAmount.kind === 'value' ? draft.unitAmount.value.unit : 'g';
+                  set('unitAmount', e.target.value === '' ? { kind: 'empty' } : { kind: 'value', value: { amount: Number(e.target.value), unit } });
+                }}
+                placeholder="300"
+              />
+              <select
+                aria-label="용량 단위"
+                value={draft.unitAmount.kind === 'value' ? draft.unitAmount.value.unit : 'g'}
+                onChange={(e) => {
+                  const amount = draft.unitAmount.kind === 'value' ? draft.unitAmount.value.amount : 0;
+                  set('unitAmount', { kind: 'value', value: { amount, unit: e.target.value as InputUnit } });
+                }}
+              >
+                {INPUT_UNITS.map((u) => (
+                  <option key={u} value={u}>
+                    {u === 'ea' ? '개' : u}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {bad('unitAmount', true)}
+          </NAField>
+        </section>
+
+        <section className="card reg-card">
+          <h2>가격 정보</h2>
+
+          <div className="field">
+            <label className="lbl" htmlFor="bundle">
+              번들묶음 (몇 개 묶음) <span className="req">필수</span>
+            </label>
+            <input id="bundle" type="number" inputMode="numeric" min="1" step="1" value={draft.bundleCount ?? ''} onChange={(e) => set('bundleCount', num(e.target.value))} />
+            {bad('bundleCount', draft.bundleCount !== null)}
+          </div>
+
+          <div className="field">
+            <label className="lbl" htmlFor="price">
+              가격 (원) <span className="req">필수</span>
+            </label>
+            <input id="price" type="number" inputMode="numeric" min="0" step="1" value={draft.price ?? ''} onChange={(e) => set('price', num(e.target.value))} placeholder="3480" />
+            {bad('price', draft.price !== null)}
+          </div>
+
+          <Autocomplete<Store>
+            label={<>판매처 <span className="req">필수</span></>}
+            value={draft.storeName}
+            onChange={(v) => set('storeName', v)}
+            fetch={fetchStores}
+            itemKey={(s) => s.id}
+            render={(s) => (s.isOnline ? `${s.name} (온라인)` : s.name)}
+            onSelect={(s) => setDraft((d) => ({ ...d, storeName: s.name, storeIsOnline: s.isOnline }))}
+            placeholder="예: 이마트 구로점"
+          />
+          <label className="na-check">
+            <input type="checkbox" checked={draft.storeIsOnline} onChange={(e) => set('storeIsOnline', e.target.checked)} />
+            온라인 판매처
           </label>
-          <input id="date" type="date" value={draft.purchasedAt} onChange={(e) => set('purchasedAt', e.target.value)} />
-        </div>
 
-        <div className="field">
-          <label className="lbl" htmlFor="note">
-            메모
-          </label>
-          <textarea id="note" rows={2} value={draft.note} onChange={(e) => set('note', e.target.value)} />
-        </div>
+          {/* 요구 1.5, 1.6: 온라인 판매처에서만 배송비 */}
+          {draft.storeIsOnline && (
+            <NAField label="배송비 (원)" state={draft.shippingFee} onChange={(s) => set('shippingFee', s)} hint="단위가격에 더해서 계산해요">
+              <input
+                aria-label="배송비"
+                type="number"
+                inputMode="numeric"
+                min="0"
+                value={draft.shippingFee.kind === 'value' ? draft.shippingFee.value : ''}
+                onChange={(e) => set('shippingFee', e.target.value === '' ? { kind: 'empty' } : { kind: 'value', value: Number(e.target.value) })}
+              />
+              {bad('shippingFee', true)}
+            </NAField>
+          )}
 
-        <PhotoPicker preview={preview} reused={!editId && draft.photo.kind === 'reused'} onPick={onPick} error={photoError ?? errors.photo} />
+          <div className="field">
+            <label className="lbl" htmlFor="date">
+              날짜 <span className="req">필수</span>
+            </label>
+            <input id="date" type="date" value={draft.purchasedAt} onChange={(e) => set('purchasedAt', e.target.value)} />
+          </div>
+
+          <div className="field">
+            <label className="lbl" htmlFor="note">
+              메모
+            </label>
+            <textarea id="note" rows={2} value={draft.note} onChange={(e) => set('note', e.target.value)} />
+          </div>
+        </section>
+
+        <section className="card reg-card">
+          <PhotoPicker preview={preview} reused={!editId && draft.photo.kind === 'reused'} onPick={onPick} error={photoError ?? errors.photo} />
+        </section>
 
         <div className="field">
           <OnlineSearch query={buildSearchQuery({ itemName: draft.itemName, productName: draft.productName, brand: draft.brand, unitAmount: draft.unitAmount })} />
