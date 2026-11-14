@@ -31,8 +31,8 @@ export async function register(page: Page, r: Reg, { goto = true } = {}) {
   await page.getByTestId('photo-input').setInputFiles(PHOTO);
   // 사진 처리(리사이즈)가 끝나야 저장할 수 있다. 실패하면 남은 항목을 보여준다.
   await expect(page.getByTestId('missing'), 'missing fields').toHaveCount(0);
-  await expect(page.getByRole('button', { name: '저장' })).toBeEnabled();
-  await page.getByRole('button', { name: '저장' }).click();
+  await expect(page.getByRole('button', { name: '저장', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: '저장', exact: true }).click();
   await page.waitForURL(/\/items\/[^/?]+\?mine=/);
 }
 
