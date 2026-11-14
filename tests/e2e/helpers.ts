@@ -13,6 +13,7 @@ export interface Reg {
   store: string;
   online?: boolean;
   shipping?: string;
+  date?: string;
 }
 
 /** 등록 화면에서 값을 넣고 저장한다. 저장 후 결과 화면 주소를 기다린다. */
@@ -28,6 +29,7 @@ export async function register(page: Page, r: Reg, { goto = true } = {}) {
   await page.getByLabel(/^판매처/).fill(r.store);
   if (r.online) await page.getByLabel('온라인 판매처').check();
   if (r.shipping) await page.getByLabel('배송비').fill(r.shipping);
+  if (r.date) await page.getByLabel(/^날짜/).fill(r.date);
   await page.getByTestId('photo-input').setInputFiles(PHOTO);
   // 사진 처리(리사이즈)가 끝나야 저장할 수 있다. 실패하면 남은 항목을 보여준다.
   await expect(page.getByTestId('missing'), 'missing fields').toHaveCount(0);
