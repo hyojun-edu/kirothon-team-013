@@ -84,5 +84,5 @@ test('screens', async ({ page, context }) => {
   await page.getByTestId('row').filter({ hasText: '쿠팡' }).first().click();
   await page.waitForURL(/\/records\//);
   await page.waitForTimeout(300);
-  await page.screenshot({ path: `${OUT}/detail.png` });
+  await page.screenshot({ path: `${OUT}/detail.png`, fullPage: true });
 });
