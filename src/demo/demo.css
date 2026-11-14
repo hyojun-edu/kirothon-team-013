@@ -1,0 +1,7 @@
+/* 요구 15.8: 데모 모드에서만 불러온다. 맨 위 오른쪽 구석, 작고 옅게, 하단 바와 겹치지 않음 */
+.demo-badge {
+  position: fixed; top: calc(4px + env(safe-area-inset-top)); right: 6px; z-index: 60;
+  padding: 1px 6px; border-radius: 8px; font-size: 11px; line-height: 16px;
+  color: var(--text-sub); background: var(--surface); border: 1px solid var(--line);
+  opacity: 0.85; pointer-events: none;
+}
