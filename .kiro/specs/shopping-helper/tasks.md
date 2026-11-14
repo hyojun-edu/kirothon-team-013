@@ -25,8 +25,8 @@ status: ready
   - [x] 3.4 사진 리사이즈(긴 변 1280px)와 썸네일 생성 _요구 13.5_
 
 - [ ] 4. 공통 컴포넌트
-  - [ ] 4.1 `NAField` (value/na/empty 세 상태) _요구 2_
-  - [ ] 4.2 `MultiSelect`, `Chip`, `PhotoPicker`
+  - [x] 4.1 `NAField` (value/na/empty 세 상태) _요구 2_
+  - [x] 4.2 `MultiSelect`, `Chip`, `PhotoPicker`
   - [ ] 4.3 터치 영역 44px 이상, 색만으로 구분하지 않기 _요구 13.4, 13.7_
 
 - [ ] 5. 가격 등록 화면
