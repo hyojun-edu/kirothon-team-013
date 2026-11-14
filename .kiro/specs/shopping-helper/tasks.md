@@ -18,11 +18,11 @@ status: ready
   - [x] 2.4 `searchQuery.ts`: 검색어 조합, 구글 URL 인코딩 _요구 9.2, 9.3_
   - [x] 2.5 `prefill.ts`: search/clone/refresh 세 모드, 원본 불변 테스트 _요구 10, 11_
 
-- [ ] 3. 데이터 계층
-  - [ ] 3.1 Dexie 스키마와 인덱스, UUID/생성·수정 시각/ownerId=`local` _요구 13.6_
-  - [ ] 3.2 Item/Product/PriceRecord/Store/Photo 저장소(CRUD)
-  - [ ] 3.3 `Field<T>`의 value/na 구분 저장 _요구 2.3_
-  - [ ] 3.4 사진 리사이즈(긴 변 1280px)와 썸네일 생성 _요구 13.5_
+- [x] 3. 데이터 계층
+  - [x] 3.1 Dexie 스키마와 인덱스, UUID/생성·수정 시각/ownerId=`local` _요구 13.6_
+  - [x] 3.2 Item/Product/PriceRecord/Store/Photo 저장소(CRUD)
+  - [x] 3.3 `Field<T>`의 value/na 구분 저장 _요구 2.3_
+  - [x] 3.4 사진 리사이즈(긴 변 1280px)와 썸네일 생성 _요구 13.5_
 
 - [ ] 4. 공통 컴포넌트
   - [ ] 4.1 `NAField` (value/na/empty 세 상태) _요구 2_
