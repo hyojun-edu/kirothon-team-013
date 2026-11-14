@@ -151,12 +151,19 @@ describe('검색 결과 화면 (작업 6)', () => {
     expect(screen.getByRole('tab', { name: '똑같은 상품' })).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('요구 7.1: 기본은 같은 품목 전체, 내 상품이 없으면 다른 프리셋은 비활성', async () => {
+  it('요구 7.1, 14.3, 14.4: 기본은 품목 전체, 내 상품이 없으면 다른 프리셋은 비활성이고 탭하면 이유를 알린다', async () => {
     const { itemId } = await saveRecord(d(), photo);
     renderAt(`/items/${itemId}`);
     await screen.findAllByTestId('row');
-    expect(screen.getByRole('tab', { name: '같은 품목 전체' })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('tab', { name: '똑같은 상품' })).toBeDisabled();
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['똑같은 상품', '용량 무관', '품목 전체']);
+    expect(screen.getByRole('tab', { name: '품목 전체' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('status')).toHaveTextContent('같은 품목의 모든 기록을 비교해요');
+    const exact = screen.getByRole('tab', { name: '똑같은 상품' });
+    expect(exact).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.click(exact);
+    expect(exact).toHaveAttribute('aria-selected', 'false');
+    expect(screen.getByRole('tab', { name: '품목 전체' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('status')).toHaveTextContent('등록하거나 고른 상품이 있을 때 쓸 수 있어요');
   });
 
   it('요구 1.7, 8.3: 저장 후 내 상품 순위와 행 표시', async () => {

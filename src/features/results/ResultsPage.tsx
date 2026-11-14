@@ -12,15 +12,19 @@ import { getItem, listRecordViews } from '../../data/repositories';
 import { OnlineSearch, pendingSearch, rememberSearch, type PendingSearch } from '../search/OnlineSearch';
 import { ReturnBar } from '../search/ReturnBar';
 import { loadViewState, saveViewState } from './filterState';
-import { RecordRow } from './RecordRow';
-import { amountText, nameText } from './format';
+import { ResultCard } from './ResultCard';
+import { amountText, fmtDate, nameText } from './format';
 
 export const PAGE = 20;
-const PRESETS: { key: Preset; label: string }[] = [
-  { key: 'exact', label: '똑같은 상품' },
-  { key: 'sameProduct', label: '같은 상품, 용량 무관' },
-  { key: 'allItem', label: '같은 품목 전체' },
-];
+const PRESETS: Preset[] = ['exact', 'sameProduct', 'allItem'];
+// 요구 14.3: 탭 이름은 짧게, 전체 뜻은 탭 아래 한 줄 설명으로
+export const PRESET_LABELS: Record<Preset, string> = { exact: '똑같은 상품', sameProduct: '용량 무관', allItem: '품목 전체' };
+export const PRESET_HINTS: Record<Preset, string> = {
+  exact: '품명·브랜드·용량이 같은 상품만 비교해요',
+  sameProduct: '품명·브랜드가 같으면 용량이 달라도 비교해요',
+  allItem: '같은 품목의 모든 기록을 비교해요',
+};
+export const PRESET_DISABLED_REASON = '등록하거나 고른 상품이 있을 때 쓸 수 있어요';
 
 export function diffText(diffWon: number, diffPct: number): string {
   if (diffWon > 0) return `최저가보다 ${formatWon(diffWon)} 비싸요 (+${diffPct.toFixed(0)}%)`;
@@ -46,6 +50,7 @@ export function ResultsPage() {
   const setFilters = (f: Filters) => setView((v) => ({ ...v, filters: f }));
   const [visible, setVisible] = useState(PAGE);
   const [zoom, setZoom] = useState<string | null>(null);
+  const [tabNote, setTabNote] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingSearch | null>(() => pendingSearch());
 
   const result = useMemo(
@@ -124,20 +129,31 @@ export function ResultsPage() {
 
       {/* C. 프리셋 탭 (요구 7) */}
       <div className="tabs" role="tablist" aria-label="비교 범위">
-        {PRESETS.map((p) => (
-          <button
-            key={p.key}
-            type="button"
-            role="tab"
-            aria-selected={preset === p.key}
-            disabled={!anchor && p.key !== 'allItem'}
-            title={!anchor && p.key !== 'allItem' ? '등록하거나 고른 상품이 있을 때 쓸 수 있어요' : undefined}
-            onClick={() => setView((v) => ({ ...v, preset: p.key }))}
-          >
-            {p.label}
-          </button>
-        ))}
+        {PRESETS.map((p) => {
+          const off = !anchor && p !== 'allItem';
+          return (
+            <button
+              key={p}
+              type="button"
+              role="tab"
+              className="tab"
+              aria-selected={preset === p}
+              aria-disabled={off || undefined}
+              onClick={() => {
+                // 요구 14.4: 비활성 탭은 이유를 한 줄로 알려 준다
+                if (off) return setTabNote(PRESET_DISABLED_REASON);
+                setTabNote(null);
+                setView((v) => ({ ...v, preset: p }));
+              }}
+            >
+              {PRESET_LABELS[p]}
+            </button>
+          );
+        })}
       </div>
+      <p className="tab-hint" role="status">
+        {tabNote ?? PRESET_HINTS[preset]}
+      </p>
 
       {/* D. 필터 바 (요구 6) */}
       {result && (
@@ -146,7 +162,7 @@ export function ResultsPage() {
             <MultiSelect label="브랜드" options={result.facets.brands} selected={f.brands} onChange={(s) => setFilters({ ...f, brands: s })} />
             <MultiSelect label="원산지" options={result.facets.origins} selected={f.origins} onChange={(s) => setFilters({ ...f, origins: s })} />
             <MultiSelect label="번들" options={result.facets.bundles} selected={f.bundles} onChange={(s) => setFilters({ ...f, bundles: s })} />
-            <select aria-label="정렬" value={view.sort} onChange={(e) => setView((v) => ({ ...v, sort: e.target.value as 'unitPrice' | 'recent' }))} style={{ width: 'auto' }}>
+            <select aria-label="정렬" value={view.sort} onChange={(e) => setView((v) => ({ ...v, sort: e.target.value as 'unitPrice' | 'recent' }))}>
               <option value="unitPrice">단위가격순</option>
               <option value="recent">최신순</option>
             </select>
@@ -174,13 +190,14 @@ export function ResultsPage() {
 
       {result && records && records.length === 0 && (
         <div className="empty">
+          <span className="empty-icon" aria-hidden="true">🛒</span>
           <p>아직 기록이 없어요</p>
           <div className="row-btns">
             <button type="button" className="primary" onClick={() => nav(`/register?item=${encodeURIComponent(item?.name ?? '')}`)}>
               가격 등록
             </button>
           </div>
-          <div style={{ marginTop: 8 }}>
+          <div className="row-btns">
             <OnlineSearch query={query} onOpened={onSearched} />
           </div>
         </div>
@@ -188,6 +205,7 @@ export function ResultsPage() {
 
       {result && records && records.length > 0 && result.rows.length === 0 && result.incomparable.length === 0 && (
         <div className="empty">
+          <span className="empty-icon" aria-hidden="true">🔍</span>
           <p>조건에 맞는 기록이 없어요</p>
           <button type="button" onClick={clearFilters}>
             필터 해제
@@ -198,9 +216,15 @@ export function ResultsPage() {
       {/* E. 조건부 최저가 카드 (요구 6.5) */}
       {result?.cheapest && (
         <section className="cheapest-card" aria-label="조건부 최저가">
-          <CheapestBadge /> <strong>{formatUnitPrice(result.cheapest.unitPrice)}</strong>
+          <div className="cheapest-head">
+            <CheapestBadge /> <span>지금 조건에서</span>
+          </div>
+          <strong className="cheapest-price">{formatUnitPrice(result.cheapest.unitPrice)}</strong>
           <div className="sub">
-            {nameText(result.cheapest.rec)} · {formatWon(result.cheapest.rec.price)} · {amountText(result.cheapest.rec)} · {result.cheapest.rec.storeName}
+            {nameText(result.cheapest.rec)} · {formatWon(result.cheapest.rec.price)} · {amountText(result.cheapest.rec)}
+          </div>
+          <div className="meta">
+            {result.cheapest.rec.storeName} · {fmtDate(result.cheapest.rec.purchasedAt)}
           </div>
         </section>
       )}
@@ -211,7 +235,7 @@ export function ResultsPage() {
       {result && result.rows.length > 0 && (
         <ul className="rows" aria-label="기록 목록">
           {result.rows.slice(0, shown).map((row) => (
-            <RecordRow key={row.rec.id} row={row} showRank onOpen={(id) => nav(`/records/${id}`)} onZoom={setZoom} />
+            <ResultCard key={row.rec.id} row={row} showRank onOpen={(id) => nav(`/records/${id}`)} onZoom={setZoom} />
           ))}
         </ul>
       )}
@@ -230,7 +254,7 @@ export function ResultsPage() {
           <p className="hint">단위가 달라 비교할 수 없어요</p>
           <ul className="rows">
             {result.incomparable.map((row) => (
-              <RecordRow key={row.rec.id} row={row} showRank={false} onOpen={(id) => nav(`/records/${id}`)} onZoom={setZoom} />
+              <ResultCard key={row.rec.id} row={row} showRank={false} onOpen={(id) => nav(`/records/${id}`)} onZoom={setZoom} />
             ))}
           </ul>
         </section>

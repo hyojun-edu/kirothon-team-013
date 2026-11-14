@@ -22,30 +22,35 @@ export function MultiSelect<K>({ label, options, selected, onChange }: Props<K>)
     onChange(next);
   };
   return (
-    <div className="multi">
-      <button
-        type="button"
-        className={'multi-btn' + (selected.size ? ' on' : '')}
-        aria-expanded={open}
-        onClick={() => setOpen(!open)}
-      >
+    <>
+      {/* 요구 14.2: 알약 버튼, 고른 개수는 배지로 */}
+      <button type="button" className={'pill' + (selected.size ? ' on' : '')} aria-expanded={open} aria-haspopup="dialog" onClick={() => setOpen(!open)}>
         {label}
-        {selected.size > 0 && ` (${selected.size})`} <span aria-hidden="true">▾</span>
+        {selected.size > 0 && <span className="pill-count">{selected.size}</span>} <span aria-hidden="true">▾</span>
       </button>
+      {/* 하단 시트: 아래에서 올라와 위쪽 칩과 "전체 해제"를 가리지 않는다. 열린 채로 목록을 볼 수 있게 모달이 아니다 */}
       {open && (
-        <div className="multi-panel" role="group" aria-label={`${label} 선택`}>
-          {options.map((o) => (
-            <label key={String(o.key)} className="multi-opt">
-              <input type="checkbox" checked={selected.has(o.key)} onChange={() => toggle(o.key)} />
-              <span>{o.label}</span>
-              {o.count !== undefined && <span className="count">{o.count}</span>}
-            </label>
-          ))}
-          <button type="button" className="link-btn" onClick={() => setOpen(false)}>
-            닫기
-          </button>
+        <div className="sheet" role="dialog" aria-label={`${label} 선택`} onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}>
+          <h2>{label}</h2>
+          <div className="sheet-list" role="group" aria-label={`${label} 목록`}>
+            {options.map((o) => (
+              <label key={String(o.key)} className="multi-opt">
+                <input type="checkbox" checked={selected.has(o.key)} onChange={() => toggle(o.key)} />
+                <span>{o.label}</span>
+                {o.count !== undefined && <span className="count">{o.count}</span>}
+              </label>
+            ))}
+          </div>
+          <div className="row-btns">
+            <button type="button" onClick={() => setOpen(false)}>
+              닫기
+            </button>
+            <button type="button" className="primary" onClick={() => setOpen(false)}>
+              적용
+            </button>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

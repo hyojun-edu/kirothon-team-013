@@ -12,34 +12,36 @@ interface Props {
   onZoom: (photoId: string) => void;
 }
 
-// 요구 5.3~5.7: 순위, 썸네일, 단위가격(가장 크게), 가격·용량×번들, 품명·브랜드, 원산지, 판매처, 날짜
-export function RecordRow({ row, showRank, onOpen, onZoom }: Props) {
+// 요구 5.3~5.7, 14.5, 14.6: 사진(순위 배지) + 단위가격(가장 크게), 가격·용량×번들, 품명·브랜드, 원산지, 판매처, 날짜
+export function ResultCard({ row, showRank, onOpen, onZoom }: Props) {
   const r = row.rec;
   const thumb = usePhotoUrl(r.photoId);
   const [histOpen, setHistOpen] = useState(false);
   const cls = ['row', row.isCheapest && showRank ? 'cheapest' : '', row.isMine ? 'mine' : '', row.isOld ? 'old' : ''].filter(Boolean).join(' ');
   return (
     <li data-testid="row" data-id={r.id}>
-      <div className={cls} role="link" tabIndex={0} aria-label={`${nameText(r)} ${formatUnitPrice(row.unitPrice)} 상세`} onClick={() => onOpen(r.id)} onKeyDown={(e) => e.key === 'Enter' && onOpen(r.id)}>
-        {showRank && <span className="rank">{row.rank}</span>}
-        <button
-          type="button"
-          className="thumb"
-          aria-label="사진 크게 보기"
-          onClick={(e) => {
-            e.stopPropagation();
-            onZoom(r.photoId);
-          }}
-        >
-          {thumb ? <img className="thumb" src={thumb} alt="" /> : null}
-        </button>
+      <div className={cls} data-rank={showRank ? row.rank : undefined} role="link" tabIndex={0} aria-label={`${nameText(r)} ${formatUnitPrice(row.unitPrice)} 상세`} onClick={() => onOpen(r.id)} onKeyDown={(e) => e.key === 'Enter' && onOpen(r.id)}>
+        <div className="photo-wrap">
+          <button
+            type="button"
+            className="thumb"
+            aria-label="사진 크게 보기"
+            onClick={(e) => {
+              e.stopPropagation();
+              onZoom(r.photoId);
+            }}
+          >
+            {thumb ? <img className="thumb" src={thumb} alt="" /> : null}
+          </button>
+          {showRank && <span className="rank">{row.rank}</span>}
+        </div>
         <div className="row-body">
-          <div className="meta">
+          <div className="row-top">
+            <div className="unit-price" data-testid="unit-price">
+              {formatUnitPrice(row.unitPrice)}
+            </div>
             {row.isCheapest && showRank && <CheapestBadge />}
             {row.isMine && <MineBadge />}
-          </div>
-          <div className="unit-price" data-testid="unit-price">
-            {formatUnitPrice(row.unitPrice)}
           </div>
           <div className="sub">
             {formatWon(r.price)} · {amountText(r)}
