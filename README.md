@@ -2,7 +2,7 @@
 
 마트 "할인가"가 내가 전에 산 가격보다 비싼지, 장 보는 자리에서 바로 확인하게 해 주는 모바일 웹앱이에요.
 
-**Demo:** <!-- TODO: 배포 주소 또는 데모 영상 링크를 여기에 적어 주세요. 아직 배포하지 않았어요. -->
+**Demo:** [데모 영상 보기](https://drive.google.com/file/d/1Q0nEnYKFwMIA-OS2OBa04WhyiaO5ozp1/view?usp=sharing)
 
 ---
 
