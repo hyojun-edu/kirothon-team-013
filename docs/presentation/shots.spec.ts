@@ -1,6 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const OUT = process.env.SHOT_DIR!;
+// 작업 12.9: 폭 360px 캡처. 실행: npx playwright test -c docs/presentation/shots.config.ts
+const OUT = 'docs/screenshots';
+const FILTER = 'docs/presentation/filter.png';
 test.setTimeout(180_000);
 
 async function photo(page: Page, label: string, color: string): Promise<Buffer> {
@@ -49,36 +51,38 @@ test('screens', async ({ page, context }) => {
   const itemUrl = page.url().replace(/\?.*/, '');
   await page.goto(itemUrl);
   await expect(page.getByTestId('row').first()).toBeVisible();
-  await page.screenshot({ path: `${OUT}/results.png`, fullPage: true });
+  await page.screenshot({ path: `${OUT}/results.png` });
 
   // 2. 필터 적용
   await page.getByRole('button', { name: /브랜드/ }).click();
   await page.getByRole('checkbox', { name: /^풀무원/ }).check();
-  await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: '닫기' }).click();
+  await page.getByRole('button', { name: '적용' }).click();
   await page.waitForTimeout(300);
-  await page.screenshot({ path: `${OUT}/filter.png`, fullPage: true });
+  await page.screenshot({ path: FILTER });
 
   // 3. 등록: 자동완성 + 이전 사진 + 비교 바
   await page.goto('/register');
   await page.getByLabel('품명 입력').fill('국산');
-  await page.screenshot({ path: `${OUT}/autocomplete.png` });
   await page.getByRole('button', { name: /풀무원 국산콩 두부 300g ×4/ }).click();
   await page.getByLabel(/^번들묶음/).fill('2');
   await page.getByLabel(/^가격/).fill('3290');
   await page.getByLabel(/^판매처/).fill('홈플러스');
+  await page.getByRole('heading', { name: '가격 등록' }).click();
   await page.waitForTimeout(500);
-  await page.screenshot({ path: `${OUT}/register.png`, fullPage: true });
+  // 가격 정보 카드와 아래에 고정된 비교 바가 같이 보이게
+  await page.getByRole('heading', { name: '가격 정보' }).evaluate((e) => e.scrollIntoView({ block: 'start' }));
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: `${OUT}/register.png` });
 
   // 4. 홈
   await page.goto('/');
   await page.waitForTimeout(300);
-  await page.screenshot({ path: `${OUT}/home.png`, fullPage: true });
+  await page.screenshot({ path: `${OUT}/home.png` });
 
   // 5. 온라인 기록 상세
   await page.goto(itemUrl);
   await page.getByTestId('row').filter({ hasText: '쿠팡' }).first().click();
   await page.waitForURL(/\/records\//);
   await page.waitForTimeout(300);
-  await page.screenshot({ path: `${OUT}/detail.png`, fullPage: true });
+  await page.screenshot({ path: `${OUT}/detail.png` });
 });
