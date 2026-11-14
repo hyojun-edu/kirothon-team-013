@@ -241,3 +241,17 @@ export async function searchProducts(prefix: string, opts: { byItem?: boolean } 
   }
   return out;
 }
+
+/** 모든 기록 보기 (자동완성 후보, 요구 16). shortcut: 매번 전체를 읽는다, 기록이 수만 건이 되면 인덱스 조회로 바꾼다 */
+export async function listAllRecordViews(): Promise<PriceRecordView[]> {
+  const [records, products, items, stores] = await Promise.all([db.records.toArray(), db.products.toArray(), db.items.toArray(), db.stores.toArray()]);
+  const pmap = new Map(products.map((p) => [p.id, p]));
+  const imap = new Map(items.map((i) => [i.id, i]));
+  const smap = new Map(stores.map((s) => [s.id, s]));
+  return records.flatMap((r) => {
+    const p = pmap.get(r.productId);
+    const item = p && imap.get(p.itemId);
+    const s = smap.get(r.storeId);
+    return p && item && s ? [view(r, p, item, s)] : [];
+  });
+}
