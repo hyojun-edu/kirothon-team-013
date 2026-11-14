@@ -62,6 +62,11 @@ export class ShoppingDB extends Dexie {
       stores: 'id, &name',
       photos: 'id',
     });
+    // design.md "데이터 모델" 인덱스 (version 2, 기존 데이터 이전 없음)
+    // photoId: 같은 사진을 쓰는 다른 기록 확인. [productId+purchasedAt]: 상품의 최근 기록.
+    this.version(2).stores({
+      records: 'id, productId, storeId, [storeId+productId], purchasedAt, createdAt, photoId, [productId+purchasedAt]',
+    });
   }
 }
 

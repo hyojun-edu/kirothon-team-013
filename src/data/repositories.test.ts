@@ -117,6 +117,14 @@ describe('저장소 (작업 3)', () => {
       expect(await latestPhotoId(v.productId)).toBe(v.photoId);
     });
 
+    it('구매일이 같으면 나중에 만든 기록의 사진을 돌려준다', async () => {
+      await saveRecord(draft({ purchasedAt: '2026-11-01' }), photo);
+      await new Promise((r) => setTimeout(r, 5));
+      const b = await saveRecord(draft({ purchasedAt: '2026-11-01', storeName: '롯데' }), { ...photo, blob: new Blob(['b']) });
+      const v = (await getRecordView(b.id))!;
+      expect(await latestPhotoId(v.productId)).toBe(v.photoId);
+    });
+
     it('기록이 없거나 사진이 지워졌으면 undefined', async () => {
       expect(await latestPhotoId('none')).toBeUndefined();
       const a = await saveRecord(draft(), photo);

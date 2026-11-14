@@ -1,3 +1,4 @@
+import Dexie from 'dexie';
 import type { Field, FieldState, PriceRecordView, RegisterDraft } from '../domain/types';
 import { toBase } from '../domain/units';
 import { db, newMeta, type Item, type Photo, type PriceRecord, type Product, type Store } from './db';
@@ -87,16 +88,19 @@ const TABLES = () => [db.items, db.products, db.records, db.stores, db.photos];
 
 /** 다른 기록이 같은 사진을 쓰고 있으면 남긴다 (요구 3.9, design.md "이전 사진 불러오기") */
 async function deletePhotoIfUnused(photoId: string): Promise<void> {
-  // shortcut: photoId 인덱스가 없어 전체를 훑는다 (스키마 변경 없음), 기록이 수만 건이 되면 인덱스 추가
-  const users = await db.records.filter((r) => r.photoId === photoId).count();
+  const users = await db.records.where('photoId').equals(photoId).count();
   if (users === 0) await db.photos.delete(photoId);
 }
 
 /** 상품의 가장 최근 기록 사진 (요구 3.7). 사진이 지워졌으면 undefined (요구 3.10) */
 export async function latestPhotoId(productId: string): Promise<string | undefined> {
-  const recs = await db.records.where('productId').equals(productId).toArray();
-  recs.sort((a, b) => b.purchasedAt.localeCompare(a.purchasedAt) || b.createdAt.localeCompare(a.createdAt));
-  const photoId = recs[0]?.photoId;
+  // [productId+purchasedAt] 인덱스로 가장 늦은 구매일만 읽는다. 같은 날이면 나중에 만든 기록.
+  const range = db.records.where('[productId+purchasedAt]').between([productId, Dexie.minKey], [productId, Dexie.maxKey]);
+  const last = await range.last();
+  if (!last) return undefined;
+  const sameDay = await db.records.where('[productId+purchasedAt]').equals([productId, last.purchasedAt]).toArray();
+  sameDay.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const photoId = sameDay[0]?.photoId;
   return photoId && (await db.photos.get(photoId)) ? photoId : undefined;
 }
 
