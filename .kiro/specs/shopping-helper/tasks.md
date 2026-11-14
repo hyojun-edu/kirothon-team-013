@@ -99,5 +99,5 @@ status: ready
   - [x] 14.4 비어 있을 때만 넣기, `?reset=1`로 초기화 _요구 15.3, 15.4_
   - [x] 14.5 `DemoBadge` 작은 "데모 데이터" 표시 (데모 모드에서만) _요구 15.8_
   - [x] 14.6 일반 빌드에 샘플 코드가 없음을 검사하는 테스트 _요구 15.9_
-  - [ ] 14.7 단위, 종단 테스트와 `docs/acceptance-checklist.md`에 인수 기준 33~37 추가
+  - [x] 14.7 단위, 종단 테스트와 `docs/acceptance-checklist.md`에 인수 기준 33~37 추가
   - [ ] 14.8 `README.md` "설치와 실행"에 `npm run demo`(4174) 한 줄과 용도를 추가한다. `BUILD_REPORT.md`에 작업 14를 적는다

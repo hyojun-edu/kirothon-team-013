@@ -1,4 +1,4 @@
-# 인수 기준 점검표 (spec.md 11절, 작업 10.5, 11.6, 12.9)
+# 인수 기준 점검표 (spec.md 11절, 14.5절, 작업 10.5, 11.6, 12.9, 14.7)
 
 | # | 인수 기준 | 결과 | 확인한 테스트 |
 |---|---|---|---|
@@ -34,6 +34,11 @@
 | 30 | 모든 글자/배경 명암비 4.5:1 이상 (큰 글자 3:1) | 통과 | `src/styles/contrast.test.ts` (토큰 쌍 13개) |
 | 31 | 홈, 등록, 결과, 상세가 13절 색·글자·간격을 같이 쓴다 | 통과 | 토큰은 `src/styles/tokens.css` 한 곳. 다른 CSS와 TSX에 색 값·인라인 스타일 없음 (`grep`으로 확인), 캡처 4장 |
 | 32 | 360px 캡처 4장이 `docs/screenshots/`에 있다 | 통과 | `docs/screenshots/{home,register,results,detail}.png`, 만든 스크립트 `docs/presentation/shots.spec.ts` (`npx playwright test -c docs/presentation/shots.config.ts`) |
+| 33 | `npm run demo`를 실행하면 4174번 포트에서 앱이 열리고 첫 화면에 샘플 품목 5개 이상이 보인다 | 통과 | E2E `tests/demo/demo.spec.ts` "데모: 첫 화면에 샘플 품목 5개 이상…" (`npx playwright test -c playwright.demo.config.ts`, 서버 `npm run demo`), `src/demo/seed.test.ts` "요구 15.2" |
+| 34 | 두부 비교 목록에 번들 다름, 브랜드 3개 이상, 온라인 2건 이상, 오래된 가격, 비교 불가, 이력이 모두 보인다 | 통과 | `src/demo/seed.test.ts` "요구 15.6: 두부 구성표" (`buildResult`로 확인, 국산 필터로 1위가 바뀜), "두부 300g×2 3,480원을 넣으면 4~5위" |
+| 35 | `?reset=1`로 열면 데이터가 초기 샘플 상태로 돌아간다 | 통과 | E2E `tests/demo/demo.spec.ts` "데모: ?reset=1로 열면…", `seed.test.ts` "요구 15.3", "요구 15.4" |
+| 36 | 일반 빌드와 일반 미리보기(4173)에는 샘플 데이터가 없다 | 통과 | E2E `tests/e2e/demo-build.spec.ts` (`dist/`에서 샘플 글자열 검색, 4173에 "데모 데이터" 없음). 데모 빌드는 `dist-demo/`로 따로 나간다 |
+| 37 | 샘플 기록에는 모두 사진이 있고 외부 이미지 파일을 쓰지 않는다 | 통과 | `seed.test.ts` "요구 15.2" (모든 기록의 사진 확인), `src/demo/drawPhoto.ts` (캔버스로 그림), E2E `demo.spec.ts` (외부 이미지 요청 없음) |
 
 추가 확인
 - 요구 6.7 (1,000건 필터 300ms): `compare.test.ts` "성능", E2E "1,000건에서 필터 변경이…"
