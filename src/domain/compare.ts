@@ -5,6 +5,9 @@ import { unitPrice, type UnitPrice } from './unitPrice';
 export const NA = '__na__';
 export type Preset = 'exact' | 'sameProduct' | 'allItem';
 export type SortKey = 'unitPrice' | 'recent';
+/** 기간 필터 (요구 6.9). 하나만 고른다 */
+export type Period = 'all' | '1y' | '90d' | '30d';
+export const PERIOD_DAYS: Record<Exclude<Period, 'all'>, number> = { '1y': 365, '90d': 90, '30d': 30 };
 
 export interface ProductKey {
   productName?: Field<string> | { kind: 'empty' };
@@ -27,6 +30,8 @@ export interface ResultQuery {
   filters: Filters;
   sort: SortKey;
   showHistory: boolean;
+  /** 기본 'all' (요구 6.9) */
+  period?: Period;
   now?: Date;
 }
 export interface Row {
@@ -57,6 +62,8 @@ export interface ResultView {
   facets: { brands: Facet[]; origins: Facet[]; bundles: Facet<number>[] };
   anchorSummary?: AnchorSummary;
   baseType: UnitType | null;
+  /** 프리셋 적용 후 기간으로 빠진 기록 수 (요구 6.11) */
+  hiddenByPeriod: number;
 }
 
 export const emptyFilters = (): Filters => ({ brands: new Set(), origins: new Set(), bundles: new Set() });
@@ -88,10 +95,18 @@ export function originLabel(key: string): string {
 
 /** 90일 넘은 기록 (요구 5.6) */
 export function isOld(purchasedAt: string, now: Date = new Date()): boolean {
+  return daysSince(purchasedAt, now) > OLD_DAYS;
+}
+
+/** 오늘과 기록 날짜의 차이(일) */
+export function daysSince(purchasedAt: string, now: Date = new Date()): number {
   const [y, m, d] = purchasedAt.split('-').map(Number);
-  const then = new Date(y, m - 1, d).getTime();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  return (today - then) / 86_400_000 > OLD_DAYS;
+  return Math.round((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - Date.UTC(y, m - 1, d)) / 86_400_000);
+}
+
+/** 기간 안의 기록인가 (요구 6.10). 경계일 포함 */
+export function inPeriod(purchasedAt: string, period: Period = 'all', now: Date = new Date()): boolean {
+  return period === 'all' || daysSince(purchasedAt, now) <= PERIOD_DAYS[period];
 }
 
 const byRecentDesc = (a: PriceRecordView, b: PriceRecordView) =>
@@ -103,7 +118,7 @@ function countFacet<K>(map: Map<K, Facet<K>>, key: K, label: string) {
   else map.set(key, { key, label, count: 1 });
 }
 
-// design.md: 프리셋 → 최신 기록만 → 필터 → 단위 타입 분리 → 정렬 → 순위
+// design.md: 프리셋 → 기간 → 최신 기록만 → 필터 → 단위 타입 분리 → 정렬 → 순위 (요구 6.14)
 export function buildResult(records: PriceRecordView[], q: ResultQuery): ResultView {
   const now = q.now ?? new Date();
   const anchor = q.anchor;
@@ -119,6 +134,11 @@ export function buildResult(records: PriceRecordView[], q: ResultQuery): ResultV
     const k = nameKey(anchorKey);
     list = list.filter((r) => nameKey(r) === k);
   }
+
+  // 1-1. 기간 (요구 6.10): 빠진 기록은 순위, 1위, 비교 바 계산에도 쓰지 않는다
+  const beforePeriod = list.length;
+  list = list.filter((r) => inPeriod(r.purchasedAt, q.period, now));
+  const hiddenByPeriod = beforePeriod - list.length;
 
   // 2. 같은 상품+판매처는 최신 기록만 (요구 5.7)
   const groups = new Map<string, PriceRecordView[]>();
@@ -209,5 +229,6 @@ export function buildResult(records: PriceRecordView[], q: ResultQuery): ResultV
     },
     anchorSummary,
     baseType,
+    hiddenByPeriod,
   };
 }

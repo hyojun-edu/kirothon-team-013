@@ -1,4 +1,4 @@
-import { buildResult, emptyFilters, isOld, NA, type ResultQuery } from './compare';
+import { buildResult, emptyFilters, inPeriod, isOld, NA, type ResultQuery } from './compare';
 import type { PriceRecordView } from './types';
 
 let n = 0;
@@ -203,5 +203,66 @@ describe('성능 (요구 6.7)', () => {
     const t = performance.now();
     buildResult(many, q({ filters: f }));
     expect(performance.now() - t).toBeLessThan(300);
+  });
+});
+
+describe('기간 필터 (요구 6.9, 6.10, 6.14)', () => {
+  const NOW = new Date(2026, 10, 14);
+  const day = (n: number) => {
+    const d = new Date(2026, 10, 14 - n);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  it('경계일 포함: 90일 전은 남고 91일 전은 빠진다', () => {
+    expect(inPeriod(day(90), '90d', NOW)).toBe(true);
+    expect(inPeriod(day(91), '90d', NOW)).toBe(false);
+    expect(inPeriod(day(30), '30d', NOW)).toBe(true);
+    expect(inPeriod(day(31), '30d', NOW)).toBe(false);
+    expect(inPeriod(day(365), '1y', NOW)).toBe(true);
+    expect(inPeriod(day(366), '1y', NOW)).toBe(false);
+    expect(inPeriod(day(9999), 'all', NOW)).toBe(true);
+  });
+
+  it('기본은 전체, 빠진 기록은 순위·1위·hiddenByPeriod에 반영', () => {
+    const recs = [rec({ price: 500, purchasedAt: day(120) }), rec({ price: 700, purchasedAt: day(10) }), rec({ price: 900, purchasedAt: day(40) })];
+    const all = buildResult(recs, q({ now: NOW }));
+    expect(all.rows.map((r) => r.rec.price)).toEqual([500, 700, 900]);
+    expect(all.hiddenByPeriod).toBe(0);
+    const r90 = buildResult(recs, q({ now: NOW, period: '90d' }));
+    expect(r90.rows.map((r) => [r.rec.price, r.rank])).toEqual([[700, 1], [900, 2]]);
+    expect(r90.cheapest!.rec.price).toBe(700);
+    expect(r90.hiddenByPeriod).toBe(1);
+    expect(buildResult(recs, q({ now: NOW, period: '30d' })).hiddenByPeriod).toBe(2);
+  });
+
+  it('최신 기록이 기간 밖이면 상품+판매처가 통째로 빠지고, 안이면 이력만 줄어든다 (순서 규칙)', () => {
+    const recs = [
+      rec({ productId: 'a', storeId: 's', price: 500, purchasedAt: day(200) }),
+      rec({ productId: 'a', storeId: 's', price: 600, purchasedAt: day(100) }),
+      rec({ productId: 'b', storeId: 's', price: 800, purchasedAt: day(120) }),
+      rec({ productId: 'b', storeId: 's', price: 900, purchasedAt: day(5) }),
+    ];
+    const r = buildResult(recs, q({ now: NOW, period: '90d' }));
+    expect(r.rows).toHaveLength(1);
+    expect(r.rows[0].rec.price).toBe(900);
+    expect(r.rows[0].history).toEqual([]);
+    expect(r.hiddenByPeriod).toBe(3);
+    // 기간 다음에 최신 기록만: 전체면 a의 최신(600)이 남는다
+    expect(buildResult(recs, q({ now: NOW })).rows.map((x) => x.rec.price)).toEqual([600, 900]);
+  });
+
+  it('프리셋 다음에 기간: hiddenByPeriod는 프리셋 안에서만 센다', () => {
+    const recs = [rec({ productName: v('가'), price: 500, purchasedAt: day(200) }), rec({ productName: v('나'), price: 700, purchasedAt: day(200) }), rec({ productName: v('가'), price: 800, purchasedAt: day(1) })];
+    const r = buildResult(recs, q({ now: NOW, period: '90d', preset: 'sameProduct', anchor: { productName: v('가') } }));
+    expect(r.hiddenByPeriod).toBe(1);
+    expect(r.rows.map((x) => x.rec.price)).toEqual([800]);
+  });
+
+  it('내 상품 비교 바의 순위와 최저가 차이도 남은 기록으로 다시 계산', () => {
+    const recs = [rec({ price: 400, purchasedAt: day(200) }), rec({ price: 700, purchasedAt: day(10) }), rec({ price: 900, purchasedAt: day(20) })];
+    const anchor = { unitPrice: { value: 800, per: 100, type: 'g' as const } };
+    const all = buildResult(recs, q({ now: NOW, anchor })).anchorSummary!;
+    expect([all.rank, all.total, all.diffWon]).toEqual([3, 4, 400]);
+    const r90 = buildResult(recs, q({ now: NOW, anchor, period: '90d' })).anchorSummary!;
+    expect([r90.rank, r90.total, r90.diffWon]).toEqual([2, 3, 100]);
   });
 });
