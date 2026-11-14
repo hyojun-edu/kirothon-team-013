@@ -157,12 +157,11 @@ test('네트워크 없이 등록하고 조회한다', async ({ page, context }) 
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
   await context.setOffline(true);
   await page.reload();
-  await page.getByRole('button', { name: '가격 등록' }).click();
+  await page.locator('.bottom-bar').getByRole('button', { name: '가격 등록' }).click();
   await register(page, { item: '양파', price: '3000', store: '시장', amount: '1000', bundle: '1' }, { goto: false });
   await expect(page.getByTestId('row')).toHaveCount(1);
   await page.goto('/');
-  await page.getByLabel('품목 검색').fill('양파');
-  await page.getByRole('button', { name: '양파' }).click();
+  await page.getByRole('link', { name: '양파 기록 1건' }).click();
   await expect(page.getByTestId('unit-price')).toHaveText('300원/100g');
   await context.setOffline(false);
 });

@@ -199,22 +199,24 @@ describe('최신가격 다시 검색 (작업 7.4, 요구 11)', () => {
   });
 });
 
-describe('홈 (작업 8)', () => {
-  it('최근 기록, 품목 검색으로 결과 화면, 가격 등록 버튼', async () => {
+describe('홈 (작업 8, 작업 17에서 품목 검색칸 대신 내 품목 칩)', () => {
+  it('최근 기록, 내 품목 칩으로 결과 화면, 가격 등록 버튼', async () => {
     const { itemId } = await saveRecord(d(), photo);
     renderAt('/');
-    expect(await screen.findByRole('link', { name: /두부/ })).toHaveAttribute('href', `/items/${itemId}`);
+    const recent = await screen.findByRole('link', { name: /국산콩 두부/ });
+    expect(recent).toHaveAttribute('href', `/items/${itemId}`);
     const u = userEvent.setup();
-    await u.type(screen.getByLabelText('품목 검색'), '두');
-    await u.click(await screen.findByRole('button', { name: '두부' }));
+    await u.click(await screen.findByRole('link', { name: '두부 기록 1건' }));
     expect(where()).toBe(`/items/${itemId}`);
+    // 요구 16.17: 품목 전체 탭으로 시작하고 나머지 두 탭은 꺼져 있다
+    expect(await screen.findByRole('tab', { name: '품목 전체' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: '똑같은 상품' })).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('tab', { name: '용량 무관' })).toHaveAttribute('aria-disabled', 'true');
   });
-  it('없는 품목이면 안내와 가격 등록', async () => {
+  it('가격 등록 버튼은 등록 화면을 연다', async () => {
     renderAt('/');
     const u = userEvent.setup();
-    await u.type(screen.getByLabelText('품목 검색'), '사과{Enter}');
-    expect(await screen.findByText('아직 기록이 없어요')).toBeInTheDocument();
-    await u.click(screen.getAllByRole('button', { name: '가격 등록' })[0]);
-    expect(where()).toBe('/register?item=' + encodeURIComponent('사과'));
+    await u.click(screen.getAllByRole('button', { name: '가격 등록' }).at(-1)!);
+    expect(where()).toBe('/register');
   });
 });

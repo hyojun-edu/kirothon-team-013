@@ -204,6 +204,33 @@ export async function recentRecords(limit = 10): Promise<PriceRecordView[]> {
   return out;
 }
 
+/** 홈 "내 품목" 칩 (요구 16.16): 기록이 있는 품목만, 가장 최근 구매일 순 */
+export interface ItemSummary {
+  itemId: string;
+  name: string;
+  recordCount: number;
+  lastPurchasedAt: string;
+}
+export async function listItems(): Promise<ItemSummary[]> {
+  const [items, products, records] = await Promise.all([db.items.toArray(), db.products.toArray(), db.records.toArray()]);
+  const itemOf = new Map(products.map((p) => [p.id, p.itemId]));
+  const acc = new Map<string, { count: number; last: string }>();
+  for (const r of records) {
+    const id = itemOf.get(r.productId);
+    if (!id) continue;
+    const a = acc.get(id) ?? { count: 0, last: '' };
+    a.count++;
+    if (r.purchasedAt > a.last) a.last = r.purchasedAt;
+    acc.set(id, a);
+  }
+  return items
+    .flatMap((i) => {
+      const a = acc.get(i.id);
+      return a ? [{ itemId: i.id, name: i.name, recordCount: a.count, lastPurchasedAt: a.last }] : [];
+    })
+    .sort((a, b) => b.lastPurchasedAt.localeCompare(a.lastPurchasedAt) || a.name.localeCompare(b.name));
+}
+
 export const getItem = (id: string) => db.items.get(id);
 export const findItemByName = (name: string) => db.items.where('name').equals(name.trim()).first();
 export const getPhoto = (id: string) => db.photos.get(id);

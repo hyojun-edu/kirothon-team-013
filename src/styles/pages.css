@@ -59,3 +59,7 @@ dl.fields dd { margin: 0; overflow-wrap: anywhere; }
 .bottom-bar-stack .compare-bar strong { font-size: var(--fs-title); }
 .bottom-bar-stack .compare-bar button { margin-top: var(--sp-1); }
 .page:has(.bottom-bar-stack .compare-bar) { padding-bottom: calc(320px + env(safe-area-inset-bottom)); }
+/* 홈 "내 품목" 칩 (요구 16.16): 줄바꿈, 높이 44px 이상 */
+.item-chips { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.item-chip { display: inline-flex; align-items: center; gap: var(--sp-1); min-height: var(--touch); max-width: 100%; border: 1px solid var(--primary); text-decoration: none; font-size: var(--fs-body); }
+.item-chip-count { font-weight: 700; font-variant-numeric: tabular-nums; }
