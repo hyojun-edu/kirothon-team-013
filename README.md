@@ -37,6 +37,7 @@
 | 검색 결과 화면: 단위가격 낮은 순 목록, 순위, 최저가 강조 | 지금 가격이 싼지 한눈에 알기 어려움 | `src/features/results/`, `src/domain/compare.ts` |
 | 브랜드, 원산지, 번들묶음 multi-select 필터 | "국산만", "같은 브랜드만" 같은 조건부 최저가를 찾기 어려움 | `src/features/results/`, `src/domain/compare.ts` |
 | 기간 필터 (전체 / 최근 1년 / 90일 / 30일): 오래된 가격을 목록과 순위 계산에서 빼기 | 몇 달 전 가격과 비교하면 지금 싼지 오해함 | `src/domain/compare.ts`, `src/components/PeriodSelect.tsx` |
+| 홈 "내 품목" 칩 (품목 이름 + 기록 건수, 최근 순): 누르면 그 품목 전체 비교. 입력칸은 빠른 비교 하나 | 입력칸이 두 개면 어디에 쳐야 할지 헷갈림. 가격 없이 품목만 훑어보고 싶음 | `src/features/home/HomePage.tsx`, `src/data/repositories.ts` (`listItems`) |
 | 비교 프리셋: 똑같은 상품 / 같은 상품 용량 무관 / 같은 품목 전체 | 비교 범위를 상황에 따라 바꾸고 싶음 | `src/domain/compare.ts` |
 | 내 상품 비교 바 (저장 전에 순위와 최저가 차이 표시) | 사기 전에 판단하고 싶음 | `src/features/register/` |
 | 품명 자동완성 시 이전 사진 불러오기 | 같은 상품 사진을 매번 다시 찍기 번거로움 | `src/features/register/`, `src/data/repositories.ts` |
@@ -108,18 +109,18 @@ npm run preview
 ## 7. 테스트
 
 ```bash
-# 단위, 컴포넌트 테스트 (21개 파일, 164개 테스트)
+# 단위, 컴포넌트 테스트 (22개 파일, 170개 테스트)
 npm test
 
 # 타입 검사
 npm run typecheck
 
-# 종단 테스트 (폭 360px, 14개 시나리오). 데모 서버 종단 테스트 3개는 npx playwright test -c playwright.demo.config.ts 처음 한 번은 브라우저 설치가 필요해요.
+# 종단 테스트 (폭 360px, 15개 시나리오). 데모 서버 종단 테스트 3개는 npx playwright test -c playwright.demo.config.ts 처음 한 번은 브라우저 설치가 필요해요.
 npx playwright install chromium
 npm run test:e2e
 ```
 
-스펙의 인수 기준 50개와 확인한 테스트의 대응표는 `docs/acceptance-checklist.md`에 있어요.
+스펙의 인수 기준 53개와 확인한 테스트의 대응표는 `docs/acceptance-checklist.md`에 있어요.
 
 ## 스펙과 개발 방식
 

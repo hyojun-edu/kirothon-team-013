@@ -39,6 +39,9 @@ async function reg(page: Page, r: R) {
 test('screens', async ({ page, context }) => {
   await context.route('https://www.google.com/**', (r) => r.fulfill({ contentType: 'text/html', body: 'g' }));
   const data: R[] = [
+    // 홈 "내 품목" 칩이 여러 개 보이도록 (작업 17)
+    { productName: '서울우유', item: '우유', brand: '서울우유', amount: '1000', bundle: '1', price: '2980', store: '이마트 구로점', color: '#e3eef9', date: '2026-07-01' },
+    { productName: '무항생제 계란', item: '계란', brand: '풀무원', amount: '600', bundle: '1', price: '6980', store: '홈플러스', color: '#f9efd6', date: '2026-06-01' },
     { productName: '국산콩 두부', item: '두부', brand: '풀무원', amount: '300', bundle: '2', price: '3480', store: '이마트 구로점', color: '#cfe8d8' },
     { productName: '국산콩 두부', item: '두부', brand: '풀무원', amount: '400', bundle: '1', price: '2900', store: '롯데마트 신도림', color: '#cfe8d8' },
     { productName: '행복한콩 두부', item: '두부', brand: 'CJ', amount: '300', bundle: '1', price: '1980', store: '홈플러스', color: '#f6e3c3' },
@@ -75,8 +78,11 @@ test('screens', async ({ page, context }) => {
   await page.waitForTimeout(200);
   await page.screenshot({ path: `${OUT}/register.png` });
 
-  // 4. 홈 (맨 위 빠른 비교, 작업 15)
+  // 4. 홈 (맨 위 빠른 비교 → 내 품목 칩, 작업 15, 17)
   await page.goto('/');
+  await expect(page.getByRole('link', { name: '두부 기록 6건' })).toBeVisible();
+  // 빠른 비교 카드 아래 "내 품목" 칩이 하단 바에 가리지 않게 조금 내린다
+  await page.evaluate(() => window.scrollTo(0, 330));
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${OUT}/home.png` });
 

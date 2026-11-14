@@ -124,7 +124,7 @@ status: ready
   - [x] 16.6 컴포넌트, 종단 테스트(폭 360px, 가로 스크롤 없음, 터치 44px 이상, 데모 샘플에서 확인)와 `docs/acceptance-checklist.md`에 인수 기준 46~50 추가
   - [x] 16.7 결과 화면 캡처를 다시 찍고 `PRESENTATION.pdf`를 다시 만든다. `README.md`와 `BUILD_REPORT.md`에 작업 16을 적는다
 
-- [ ] 17. 홈 정리: 품목 검색칸을 없애고 "내 품목" 칩 (스펙 변경: 요구 16.15~16.18, spec.md 10절, 15.6, 인수 기준 51~53)
+- [x] 17. 홈 정리: 품목 검색칸을 없애고 "내 품목" 칩 (스펙 변경: 요구 16.15~16.18, spec.md 10절, 15.6, 인수 기준 51~53)
   - 기존 동작은 그대로여야 한다. 품목 검색칸에 의존하던 테스트는 새 홈 구성에 맞게 고친다.
   - [x] 17.1 `HomePage`에서 "품목 검색" 입력과 결과 목록을 삭제하고, 품목 이름만 입력해도 후보가 나오는지 확인하는 테스트 _요구 16.15_
   - [x] 17.2 `ItemChips`: 품목 이름 + 기록 건수, 최근 순, 줄바꿈, 링크, 높이 44px 이상 _요구 16.16_
@@ -132,4 +132,4 @@ status: ready
   - [x] 17.4 기록 0건 홈 안내와 "가격 등록" 버튼 _요구 16.18_
   - [x] 17.5 홈 순서(빠른 비교 → 내 품목 → 최근 기록 → 하단 가격 등록) 맞추기 _spec.md 15.6_
   - [x] 17.6 컴포넌트, 종단 테스트(폭 360px)와 `docs/acceptance-checklist.md`에 인수 기준 51~53 추가
-  - [ ] 17.7 `docs/screenshots/home.png`를 다시 찍고 `PRESENTATION.pdf`를 다시 만든다. `README.md`와 `BUILD_REPORT.md`에 작업 17을 적는다
+  - [x] 17.7 `docs/screenshots/home.png`를 다시 찍고 `PRESENTATION.pdf`를 다시 만든다. `README.md`와 `BUILD_REPORT.md`에 작업 17을 적는다
