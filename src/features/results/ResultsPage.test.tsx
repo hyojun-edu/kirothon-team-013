@@ -52,6 +52,9 @@ describe('검색 결과 화면 (작업 6)', () => {
     const first = screen.getAllByTestId('row')[0];
     expect(first.querySelector('.row')).toHaveClass('cheapest');
     expect(within(first).getByText(/최저가/)).toBeInTheDocument();
+    // 요구 6.5: 필터가 없으면 배지는 "최저가" (조건 내 아님), 따로 된 최저가 카드는 없다 (요구 5.2)
+    expect(first.querySelector('.badge-cheapest')).toHaveTextContent(/^\s*🏆\s*최저가$/);
+    expect(screen.queryByRole('region', { name: '조건부 최저가' })).not.toBeInTheDocument();
     expect(within(screen.getAllByTestId('row')[1]).queryByText(/최저가/)).toBeNull();
     expect(screen.getByText('전체 2건')).toBeInTheDocument();
   });
@@ -67,7 +70,6 @@ describe('검색 결과 화면 (작업 6)', () => {
       screen.getByRole('region', { name: '내 상품 비교' }),
       screen.getByRole('tablist'),
       screen.getByRole('button', { name: /브랜드/ }),
-      screen.getByRole('region', { name: '조건부 최저가' }),
       screen.getByRole('list', { name: '기록 목록' }),
       screen.getByRole('region', { name: '비교 불가' }),
       screen.getAllByRole('button', { name: '가격 등록' }).at(-1)!,
@@ -115,7 +117,7 @@ describe('검색 결과 화면 (작업 6)', () => {
     expect(rowsText()[0]).toBe('833원/100g');
   });
 
-  it('요구 6: 필터 여러 개 → 조건부 최저가, 칩 해제, 0건이면 필터 해제', async () => {
+  it('요구 6: 필터 여러 개 → 1위 카드가 조건 내 최저가, 칩 해제, 0건이면 필터 해제', async () => {
     const { itemId } = await saveRecord(d({ brand: { kind: 'value', value: 'CJ' }, price: 1000 }), photo);
     await saveRecord(d({ brand: { kind: 'value', value: '풀무원' }, price: 2000, storeName: 'a' }), photo);
     await saveRecord(d({ brand: { kind: 'na' }, price: 3000, storeName: 'b', bundleCount: 1 }), photo);
@@ -126,7 +128,11 @@ describe('검색 결과 화면 (작업 6)', () => {
     await u.click(screen.getByRole('checkbox', { name: /^풀무원/ }));
     await u.click(screen.getByRole('checkbox', { name: /^해당사항 없음/ }));
     expect(screen.getAllByTestId('row')).toHaveLength(2);
-    expect(screen.getByRole('region', { name: '조건부 최저가' })).toHaveTextContent('2,000원');
+    // 요구 5.2, 6.5: 따로 된 최저가 카드는 없고, 1위 카드 배지가 "조건 내 최저가"
+    expect(screen.queryByRole('region', { name: '조건부 최저가' })).not.toBeInTheDocument();
+    const first = screen.getAllByTestId('row')[0];
+    expect(first).toHaveTextContent('2,000원');
+    expect(first).toHaveTextContent('조건 내 최저가');
     await u.click(screen.getByRole('button', { name: /번들/ }));
     await u.click(screen.getByRole('checkbox', { name: /^2개/ }));
     expect(screen.getAllByTestId('row')).toHaveLength(1);

@@ -77,7 +77,7 @@ describe('기록 상세 (작업 7.1, 요구 12)', () => {
     await userEvent.click(screen.getByRole('button', { name: '삭제하기' }));
     await waitFor(() => expect(where()).toBe(`/items/${cheap.itemId}`));
     expect(await db.records.count()).toBe(1);
-    await waitFor(() => expect(screen.getByRole('region', { name: '조건부 최저가' })).toHaveTextContent('3,000원'));
+    await waitFor(() => expect(screen.getAllByTestId('row')[0]).toHaveTextContent('3,000원'));
   });
 });
 

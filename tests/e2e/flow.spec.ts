@@ -35,11 +35,15 @@ test('전체 흐름', async ({ page, context }) => {
   await register(page, { productName: '부침두부', item: '두부', brand: 'CJ', amount: '300', bundle: '1', price: '1500', store: '동네마트' }, { goto: false });
   await page.goto(page.url().replace(/\?.*/, ''));
   await expect(page.getByTestId('row')).toHaveCount(3);
-  await expect(page.getByRole('region', { name: '조건부 최저가' })).toContainText('500원/100g');
+  // 요구 5.2, 6.5: 1위 카드가 최저가. 따로 된 최저가 카드는 없다
+  await expect(page.getByRole('region', { name: '조건부 최저가' })).toHaveCount(0);
+  await expect(page.getByTestId('row').first()).toContainText('500원/100g');
+  await expect(page.getByTestId('row').first().locator('.badge-cheapest')).toHaveText(/^\s*🏆?\s*최저가$/);
   await page.getByRole('button', { name: /브랜드/ }).click();
   await page.getByRole('checkbox', { name: /^풀무원/ }).check();
   await expect(page.getByTestId('row')).toHaveCount(2);
-  await expect(page.getByRole('region', { name: '조건부 최저가' })).toContainText('580원/100g');
+  await expect(page.getByTestId('row').first()).toContainText('580원/100g');
+  await expect(page.getByTestId('row').first().getByText(/조건 내 최저가/)).toBeVisible();
   await expect(page.getByRole('button', { name: '풀무원 필터 해제' })).toBeVisible();
   await touchTargetsOk(page);
   await noHorizontalScroll(page);

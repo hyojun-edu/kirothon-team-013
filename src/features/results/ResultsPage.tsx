@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { CheapestBadge } from '../../components/Badges';
 import { Chip } from '../../components/Chip';
 import { MultiSelect } from '../../components/MultiSelect';
 import { PhotoZoom } from '../../components/Thumb';
@@ -13,7 +12,6 @@ import { OnlineSearch, pendingSearch, rememberSearch, type PendingSearch } from 
 import { ReturnBar } from '../search/ReturnBar';
 import { loadViewState, saveViewState } from './filterState';
 import { ResultCard } from './ResultCard';
-import { amountText, fmtDate, nameText } from './format';
 
 export const PAGE = 20;
 const PRESETS: Preset[] = ['exact', 'sameProduct', 'allItem'];
@@ -213,29 +211,13 @@ export function ResultsPage() {
         </div>
       )}
 
-      {/* E. 조건부 최저가 카드 (요구 6.5) */}
-      {result?.cheapest && (
-        <section className="cheapest-card" aria-label="조건부 최저가">
-          <div className="cheapest-head">
-            <CheapestBadge /> <span>지금 조건에서</span>
-          </div>
-          <strong className="cheapest-price">{formatUnitPrice(result.cheapest.unitPrice)}</strong>
-          <div className="sub">
-            {nameText(result.cheapest.rec)} · {formatWon(result.cheapest.rec.price)} · {amountText(result.cheapest.rec)}
-          </div>
-          <div className="meta">
-            {result.cheapest.rec.storeName} · {fmtDate(result.cheapest.rec.purchasedAt)}
-          </div>
-        </section>
-      )}
-
       {result && result.rows.length === 1 && <p className="hint">비교할 기록이 더 필요해요</p>}
 
-      {/* F. 기록 목록 */}
+      {/* E. 기록 목록. 맨 위 1위 카드가 현재 조건의 최저가 (요구 5.2, 6.5) */}
       {result && result.rows.length > 0 && (
         <ul className="rows" aria-label="기록 목록">
           {result.rows.slice(0, shown).map((row) => (
-            <ResultCard key={row.rec.id} row={row} showRank onOpen={(id) => nav(`/records/${id}`)} onZoom={setZoom} />
+            <ResultCard key={row.rec.id} row={row} showRank cheapestLabel={activeChips.length > 0 ? '조건 내 최저가' : '최저가'} onOpen={(id) => nav(`/records/${id}`)} onZoom={setZoom} />
           ))}
         </ul>
       )}
@@ -247,7 +229,7 @@ export function ResultsPage() {
         </div>
       )}
 
-      {/* G. 비교 불가 구역 (요구 5.12) */}
+      {/* F. 비교 불가 구역 (요구 5.12) */}
       {result && result.incomparable.length > 0 && (
         <section className="section-incomparable" aria-label="비교 불가">
           <h2>비교 불가</h2>
@@ -262,7 +244,7 @@ export function ResultsPage() {
 
       {zoom && <PhotoZoom photoId={zoom} onClose={() => setZoom(null)} />}
 
-      {/* H. 하단 고정 버튼 */}
+      {/* G. 하단 고정 버튼 */}
       {records && records.length > 0 && (
         <div className="bottom-bar">
           <button type="button" className="primary" onClick={() => nav(`/register?item=${encodeURIComponent(item?.name ?? '')}`)}>

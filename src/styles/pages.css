@@ -10,13 +10,10 @@
 .recent-body { flex: 1; min-width: 0; }
 .recent-up { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-/* 결과: 내 상품 비교 바, 조건부 최저가 카드 */
+/* 결과: 내 상품 비교 바 */
 .compare-bar { background: var(--surface); border: 2px solid var(--primary); border-radius: var(--r-card); padding: var(--sp-3) var(--sp-4); margin: var(--sp-2) 0; box-shadow: var(--shadow); }
 .compare-bar strong { font-size: var(--fs-title); font-variant-numeric: tabular-nums; }
 .compare-bar button { margin-top: var(--sp-2); width: 100%; }
-.cheapest-card { background: var(--primary-soft); border: 2px solid var(--primary); border-radius: var(--r-card); padding: var(--sp-4); margin: var(--sp-3) 0; }
-.cheapest-head { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-small); color: var(--text-sub); }
-.cheapest-price { display: block; font-size: 28px; font-weight: 800; line-height: 1.2; margin: var(--sp-1) 0; font-variant-numeric: tabular-nums; }
 
 /* 결과 카드 (요구 14.5, 14.6) */
 .rows { list-style: none; padding: 0; margin: var(--sp-3) 0 0; }

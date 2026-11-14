@@ -8,12 +8,14 @@ import { amountText, brandText, fmtDate, nameText, originText } from './format';
 interface Props {
   row: Row;
   showRank: boolean;
+  /** 1위 배지 글자 (요구 6.5) */
+  cheapestLabel?: string;
   onOpen: (id: string) => void;
   onZoom: (photoId: string) => void;
 }
 
 // 요구 5.3~5.7, 14.5, 14.6: 사진(순위 배지) + 단위가격(가장 크게), 가격·용량×번들, 품명·브랜드, 원산지, 판매처, 날짜
-export function ResultCard({ row, showRank, onOpen, onZoom }: Props) {
+export function ResultCard({ row, showRank, cheapestLabel, onOpen, onZoom }: Props) {
   const r = row.rec;
   const thumb = usePhotoUrl(r.photoId);
   const [histOpen, setHistOpen] = useState(false);
@@ -40,7 +42,7 @@ export function ResultCard({ row, showRank, onOpen, onZoom }: Props) {
             <div className="unit-price" data-testid="unit-price">
               {formatUnitPrice(row.unitPrice)}
             </div>
-            {row.isCheapest && showRank && <CheapestBadge />}
+            {row.isCheapest && showRank && <CheapestBadge label={cheapestLabel} />}
             {row.isMine && <MineBadge />}
           </div>
           <div className="sub">
