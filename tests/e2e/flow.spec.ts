@@ -188,4 +188,11 @@ test('1,000건에서 필터 변경이 300ms 안에 반영된다', async ({ page 
   });
   expect(ms).toBeGreaterThanOrEqual(0);
   expect(ms).toBeLessThan(300);
+
+  // 요구 5.14: 아래로 스크롤하면 20건씩 더 불러온다
+  await page.getByRole('button', { name: '닫기', exact: true }).click();
+  await page.getByRole('button', { name: '전체 해제' }).click();
+  await expect(page.getByTestId('row')).toHaveCount(20);
+  await page.getByRole('button', { name: /더 보기/ }).scrollIntoViewIfNeeded();
+  await expect(page.getByTestId('row')).toHaveCount(40);
 });
