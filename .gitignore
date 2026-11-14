@@ -24,3 +24,5 @@ out/
 test-results/
 playwright-report/
 dev-dist/
+.claude/settings.local.json
+*.tsbuildinfo
