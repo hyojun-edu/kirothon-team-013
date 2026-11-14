@@ -365,35 +365,6 @@ export function RegisterPage() {
           <OnlineSearch query={buildSearchQuery({ itemName: draft.itemName, productName: draft.productName, brand: draft.brand, unitAmount: draft.unitAmount })} />
         </div>
 
-        {/* 요구 8.1, 8.2: 저장 전 비교 */}
-        {myUnitPrice && (
-          <section className="compare-bar" aria-label="지금 이 가격">
-            <div>
-              지금 이 가격 <strong>{formatUnitPrice(myUnitPrice)}</strong>
-            </div>
-            {summary ? (
-              <div>
-                {summary.total}건 중 <strong>{summary.rank}위</strong> · 최저가보다{' '}
-                {summary.diffWon > 0 ? `${formatWon(summary.diffWon)} 비싸요 (+${summary.diffPct.toFixed(0)}%)` : summary.diffWon < 0 ? `${formatWon(-summary.diffWon)} 싸요 (${summary.diffPct.toFixed(0)}%)` : '같아요'}
-              </div>
-            ) : (
-              <div className="hint">{itemRecords ? '단위가 달라 비교할 수 없어요' : '이 품목의 첫 기록이에요'}</div>
-            )}
-            {itemRecords && (
-              <button
-                type="button"
-                onClick={() =>
-                  nav(`/items/${itemRecords.itemId}`, {
-                    state: { draftAnchor: { unitPrice: myUnitPrice, productName: draft.productName, brand: draft.brand, unitAmount: draft.unitAmount } },
-                  })
-                }
-              >
-                저장 없이 비교만
-              </button>
-            )}
-          </section>
-        )}
-
         {!valid && (
           <p className="hint" data-testid="missing">
             저장하려면: {Object.entries(errors).filter(([k]) => k !== 'photo').map(([, v]) => v).concat(errors.photo ? ['사진을 올려 주세요'] : []).join(', ')}
@@ -404,7 +375,35 @@ export function RegisterPage() {
             {saveError}
           </p>
         )}
-        <div className="bottom-bar">
+        <div className="bottom-bar bottom-bar-stack">
+          {/* 요구 8.1, 8.2: 저장 전 비교. 13.5: 화면 아래에 고정 */}
+          {myUnitPrice && (
+            <section className="compare-bar" aria-label="지금 이 가격">
+              <div>
+                지금 이 가격 <strong>{formatUnitPrice(myUnitPrice)}</strong>
+              </div>
+              {summary ? (
+                <div>
+                  {summary.total}건 중 <strong>{summary.rank}위</strong> · 최저가보다{' '}
+                  {summary.diffWon > 0 ? `${formatWon(summary.diffWon)} 비싸요 (+${summary.diffPct.toFixed(0)}%)` : summary.diffWon < 0 ? `${formatWon(-summary.diffWon)} 싸요 (${summary.diffPct.toFixed(0)}%)` : '같아요'}
+                </div>
+              ) : (
+                <div className="hint">{itemRecords ? '단위가 달라 비교할 수 없어요' : '이 품목의 첫 기록이에요'}</div>
+              )}
+              {itemRecords && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    nav(`/items/${itemRecords.itemId}`, {
+                      state: { draftAnchor: { unitPrice: myUnitPrice, productName: draft.productName, brand: draft.brand, unitAmount: draft.unitAmount } },
+                    })
+                  }
+                >
+                  저장 없이 비교만
+                </button>
+              )}
+            </section>
+          )}
           <button type="submit" className="primary" disabled={!valid || saving}>
             {saving ? '저장 중…' : saveError ? '다시 저장' : '저장'}
           </button>

@@ -55,3 +55,10 @@ dl.fields { display: grid; grid-template-columns: auto 1fr; gap: var(--sp-2) var
 dl.fields dt { color: var(--text-sub); }
 dl.fields dd { margin: 0; overflow-wrap: anywhere; }
 .detail-actions { display: flex; flex-direction: column; gap: var(--sp-2); }
+
+/* 등록: 내 상품 비교 바를 저장 버튼 위에 고정 (13.5). 바가 높아지는 만큼 본문 아래 여백을 늘린다 */
+.bottom-bar-stack { flex-direction: column; }
+.bottom-bar-stack .compare-bar { margin: 0; padding: var(--sp-2) var(--sp-3); box-shadow: none; font-size: var(--fs-sub); }
+.bottom-bar-stack .compare-bar strong { font-size: var(--fs-title); }
+.bottom-bar-stack .compare-bar button { margin-top: var(--sp-1); }
+.page:has(.bottom-bar-stack .compare-bar) { padding-bottom: calc(320px + env(safe-area-inset-bottom)); }
