@@ -104,6 +104,13 @@ export function RegisterPage() {
 
   const errors = validateDraft(draft, !!photo || hasExistingPhoto);
   const valid = Object.keys(errors).length === 0;
+  // 값이 있는데 잘못된 경우 즉시 필드 아래에 보여준다 (design.md 오류 처리)
+  const bad = (k: keyof typeof errors, filled: boolean) =>
+    filled && errors[k] ? (
+      <p className="error" role="alert">
+        {errors[k]}
+      </p>
+    ) : null;
 
   const onPick = async (file: File) => {
     setPhotoError(null);
@@ -260,6 +267,7 @@ export function RegisterPage() {
               ))}
             </select>
           </div>
+          {bad('unitAmount', true)}
         </NAField>
 
         <div className="field">
@@ -267,6 +275,7 @@ export function RegisterPage() {
             번들묶음 (몇 개 묶음) <span className="req">필수</span>
           </label>
           <input id="bundle" type="number" inputMode="numeric" min="1" step="1" value={draft.bundleCount ?? ''} onChange={(e) => set('bundleCount', num(e.target.value))} />
+          {bad('bundleCount', draft.bundleCount !== null)}
         </div>
 
         <div className="field">
@@ -274,6 +283,7 @@ export function RegisterPage() {
             가격 (원) <span className="req">필수</span>
           </label>
           <input id="price" type="number" inputMode="numeric" min="0" step="1" value={draft.price ?? ''} onChange={(e) => set('price', num(e.target.value))} placeholder="3480" />
+          {bad('price', draft.price !== null)}
         </div>
 
         <Autocomplete<Store>
@@ -302,6 +312,7 @@ export function RegisterPage() {
               value={draft.shippingFee.kind === 'value' ? draft.shippingFee.value : ''}
               onChange={(e) => set('shippingFee', e.target.value === '' ? { kind: 'empty' } : { kind: 'value', value: Number(e.target.value) })}
             />
+            {bad('shippingFee', true)}
           </NAField>
         )}
 
