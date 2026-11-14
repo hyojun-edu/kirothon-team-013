@@ -21,3 +21,6 @@ out/
 # 기타
 .DS_Store
 *.log
+test-results/
+playwright-report/
+dev-dist/
