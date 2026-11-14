@@ -61,6 +61,7 @@ test('전체 흐름', async ({ page, context }) => {
   await expect(page.getByLabel(/^번들묶음/)).toHaveValue('2');
   await expect(page.getByLabel(/^가격/)).toHaveValue('');
   await expect(page.getByLabel(/^판매처/)).toHaveValue('');
+  await expect(page.getByText('사진 없음')).toBeVisible(); // 인수 26
   await register(page, { item: '', bundle: '6', price: '9000', store: '쿠팡', online: true, shipping: '3000' }, { goto: false });
   await expect(page.getByRole('region', { name: '내 상품 비교' })).toContainText('667원/100g');
 
@@ -92,6 +93,54 @@ test('전체 흐름', async ({ page, context }) => {
   await page.getByTestId('row').filter({ hasText: '이마트 구로점' }).locator('.row').click();
   await expect(page.getByRole('button', { name: '이 기록으로 새로 등록' })).toBeVisible();
   await expect(page.getByRole('button', { name: /최신가격 다시 검색/ })).toHaveCount(0);
+});
+
+// 작업 11: 자동완성으로 이전 사진 불러오기 (인수 23, 24)
+test('품명 자동완성으로 이전 사진을 불러와 저장하고, 바꾸면 새 사진으로 저장한다', async ({ page }) => {
+  await register(page, { productName: '국산콩 두부', item: '두부', brand: '풀무원', amount: '300', bundle: '2', price: '3480', store: '이마트' });
+  const pick = async () => {
+    await page.goto('/register');
+    await page.getByLabel('품명 입력').fill('국산');
+    await page.getByRole('button', { name: /풀무원 국산콩 두부 300g ×2/ }).click();
+    await expect(page.getByTestId('reused-photo')).toHaveText('이전 사진');
+    await expect(page.getByRole('img', { name: '이전 사진' })).toBeVisible();
+    await page.getByLabel(/^가격/).fill('3000');
+    await page.getByLabel(/^판매처/).fill('롯데마트');
+  };
+  const photoCount = () =>
+    page.evaluate(
+      () =>
+        new Promise<number>((res) => {
+          const r = indexedDB.open('shopping-helper');
+          r.onsuccess = () => {
+            const c = r.result.transaction('photos').objectStore('photos').count();
+            c.onsuccess = () => res(c.result);
+          };
+        }),
+    );
+
+  // 인수 23: 사진을 새로 올리지 않아도 저장된다
+  await pick();
+  await noHorizontalScroll(page);
+  await touchTargetsOk(page);
+  await expect(page.getByTestId('missing')).toHaveCount(0);
+  await page.getByRole('button', { name: '저장' }).click();
+  await page.waitForURL(/\?mine=/);
+  await expect(page.getByTestId('row')).toHaveCount(2);
+  expect(await photoCount()).toBe(1);
+
+  // 인수 24: 갤러리에서 바꾸면 새 사진으로 저장된다
+  await pick();
+  await expect(page.getByRole('button', { name: /갤러리에서 선택/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /다시 촬영/ })).toBeVisible();
+  await page.getByTestId('photo-input').setInputFiles(PHOTO);
+  await expect(page.getByTestId('reused-photo')).toHaveCount(0);
+  await page.getByLabel(/^판매처/).fill('홈플러스');
+  await expect(page.getByRole('button', { name: '저장' })).toBeEnabled();
+  await page.getByRole('button', { name: '저장' }).click();
+  await page.waitForURL(/\?mine=/);
+  await expect(page.getByTestId('row')).toHaveCount(3);
+  expect(await photoCount()).toBe(2);
 });
 
 // 작업 10.2: 오프라인에서 등록과 조회 (요구 13.2)
