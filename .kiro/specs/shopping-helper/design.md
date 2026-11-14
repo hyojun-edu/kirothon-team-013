@@ -138,6 +138,7 @@ function prefill(rec: PriceRecordView, mode: PrefillMode): RegisterDraft;
 interface Item { id; name; ownerId; createdAt; updatedAt }
 interface Product {
   id; itemId;
+  key: string;                             // 같은 상품 판단용 키 (아래 설명)
   name: Field<string>;                     // value | na
   brand: Field<string>;
   origin: Field<{ type: 'domestic' } | { type: 'import'; country?: string }>;
@@ -147,17 +148,26 @@ interface Product {
 }
 interface PriceRecord {
   id; productId; storeId;
-  bundleCount: number; price: number; shippingFee?: number;
+  bundleCount: number; price: number;
+  shippingFee?: number;
+  shippingFeeNA?: boolean;  // 배송비 "해당사항 없음" (요구 2.1, 2.3)
   purchasedAt: string;      // ISO date
   photoId: string; note?: string;
   ownerId; createdAt; updatedAt
 }
-interface Store { id; name; chain?; branch?; isOnline: boolean }
-interface Photo { id; blob: Blob; width; height; createdAt }
-type Field<T> = { kind: 'value'; value: T } | { kind: 'na' };
+interface Store { id; name; chain?; branch?; isOnline: boolean }  // MVP는 chain, branch를 비워 둔다
+interface Photo { id; blob: Blob; thumb: Blob; width; height; createdAt }  // thumb: 목록용 썸네일
+type Field<T> = { kind: 'value'; value: T } | { kind: 'na' };      // 미입력은 칸 자체가 없는 것(undefined)
 ```
-- 인덱스: `Product[itemId]`, `Product[name.value]`, `PriceRecord[productId]`, `PriceRecord[storeId+productId]`, `Store[name]`.
-- 같은 상품 판단: 품명 + 브랜드 + 단위용량이 모두 같으면 같은 Product를 재사용한다.
+- 인덱스 (Dexie version 2, 기존 데이터 이전 없음):
+  - `Product[itemId]`, `Product[name.value]`, `Product[key]`
+  - `PriceRecord[productId]`, `PriceRecord[storeId+productId]`
+  - `PriceRecord[photoId]`: 삭제 시 같은 사진을 쓰는 다른 기록이 있는지 확인 (요구 3.7~3.11)
+  - `PriceRecord[productId+purchasedAt]`: 상품의 가장 최근 기록 사진, 최신 기록만 표시(요구 5.7), 가격 이력(요구 11.6)
+  - `Store[name]`
+- 같은 상품 판단 (`Product.key`): 품목 + 품명 + 브랜드 + 단위용량 + 원산지 + 포장단위가 모두 같으면 같은 Product를 재사용한다. 원산지와 포장단위를 키에 넣은 이유는 복제 등록 후 값을 바꿨을 때 원래 기록이 바뀌지 않게 하려는 것이다 (요구 10.5).
+- 비교 프리셋("똑같은 상품", "같은 상품, 용량 무관")은 키가 아니라 품명 + 브랜드 + 단위용량(또는 품명 + 브랜드)만 비교한다 (요구 7).
+- `Store.chain`, `Store.branch`는 MVP에서 항상 비워 둔다. 판매처는 이름 하나만 받는다. "이마트 구로점" → 체인/지점 정규화는 향후 통합 DB 단계에서 한다.
 - 단위가격은 저장하지 않는다 (요구 4.7).
 - `ownerId`는 MVP에서 고정값 `local`. 향후 계정 도입 시 채운다.
 
