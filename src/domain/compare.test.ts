@@ -259,7 +259,7 @@ describe('기간 필터 (요구 6.9, 6.10, 6.14)', () => {
 
   it('내 상품 비교 바의 순위와 최저가 차이도 남은 기록으로 다시 계산', () => {
     const recs = [rec({ price: 400, purchasedAt: day(200) }), rec({ price: 700, purchasedAt: day(10) }), rec({ price: 900, purchasedAt: day(20) })];
-    const anchor = { unitPrice: { value: 800, per: 100, type: 'g' as const } };
+    const anchor = { unitPrice: { value: 800, per: 100 as const, type: 'g' as const } };
     const all = buildResult(recs, q({ now: NOW, anchor })).anchorSummary!;
     expect([all.rank, all.total, all.diffWon]).toEqual([3, 4, 400]);
     const r90 = buildResult(recs, q({ now: NOW, anchor, period: '90d' })).anchorSummary!;
