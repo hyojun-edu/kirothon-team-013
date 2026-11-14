@@ -41,7 +41,7 @@ export function OnlineSearch({ query, label = '온라인 가격 검색', onOpene
         검색어
       </label>
       <input id="search-q" value={q} onChange={(e) => setQ(e.target.value)} />
-      <div className="row-btns" style={{ marginTop: 8 }}>
+      <div className="row-btns">
         <button type="button" className="primary" onClick={go} disabled={!q.trim()}>
           구글에서 열기
         </button>

@@ -1,0 +1,45 @@
+/* 요구 14.1, spec.md 13.2~13.4: 색, 글자, 간격 토큰은 여기서 한 번만 정의한다. */
+:root {
+  /* 색 (13.2) */
+  --primary: #1F7A4D;
+  --primary-soft: #E7F3EC;
+  --accent: #E8590C;
+  --bg: #F6F7F6;
+  --surface: #FFFFFF;
+  --text: #1A1A1A;
+  --text-sub: #5F6368;
+  --line: #E3E6E4;
+  --danger: #C0392B;
+  --on-primary: var(--surface);
+  --on-accent: var(--text); /* 흰 글자는 #E8590C 위에서 4.5:1이 안 된다 */
+  --zoom-bg: rgba(0, 0, 0, 0.92);
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-up: 0 -2px 8px rgba(0, 0, 0, 0.06);
+
+  /* 글자 (13.3) */
+  --font: system-ui, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --fs-price: 22px;
+  --fs-title: 20px;
+  --fs-h2: 17px;
+  --fs-body: 16px;
+  --fs-ctrl: 15px;
+  --fs-sub: 14px;
+  --fs-small: 13px;
+  --fs-badge: 12px;
+  --lh: 1.45;
+
+  /* 간격과 모양 (13.4) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --r-card: 16px;
+  --r-ctrl: 12px;
+  --r-pill: 999px;
+  --touch: 44px;
+  --thumb: 64px;
+  --bar-h: 72px;
+  --t: 150ms ease;
+}

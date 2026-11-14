@@ -1,0 +1,21 @@
+/* 리셋, 글자 */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; overflow-x: hidden; }
+body {
+  font-family: var(--font);
+  color: var(--text);
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+  font-size: var(--fs-body);
+  line-height: var(--lh);
+}
+img { max-width: 100%; }
+h1 { font-size: var(--fs-title); font-weight: 700; margin: var(--sp-1) 0 var(--sp-3); }
+h2 { font-size: var(--fs-h2); font-weight: 700; margin: var(--sp-6) 0 var(--sp-2); }
+p { margin: var(--sp-2) 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* 요구 14.10: 움직임 줄이기 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}

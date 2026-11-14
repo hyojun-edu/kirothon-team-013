@@ -6,7 +6,7 @@ export function ReturnBar({ pending, onClose }: { pending: PendingSearch; onClos
   const nav = useNavigate();
   return (
     <div className="return-bar" role="region" aria-label="검색에서 돌아옴">
-      <span style={{ flex: '1 1 140px' }}>온라인에서 가격을 찾았나요?</span>
+      <span>온라인에서 가격을 찾았나요?</span>
       <button
         type="button"
         onClick={() => {
