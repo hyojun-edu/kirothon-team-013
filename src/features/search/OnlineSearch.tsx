@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { googleUrl } from '../../domain/searchQuery';
+import type { RegisterDraft } from '../../domain/types';
 
 interface Props {
   query: string;
@@ -67,6 +68,8 @@ export interface PendingSearch {
   from?: string; // 기록 id
   mode: 'search' | 'refresh';
   itemName?: string;
+  /** 저장 전 내 상품을 검색했을 때, 돌아와서 열 등록 화면의 미리 채운 값 */
+  draft?: RegisterDraft;
 }
 export function rememberSearch(p: PendingSearch) {
   sessionStorage.setItem(KEY, JSON.stringify(p));

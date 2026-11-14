@@ -335,3 +335,47 @@ describe('기간 필터 (요구 6.9~6.13, 작업 16)', () => {
     expect(screen.getByRole('button', { name: /^최근 90일/, expanded: false })).toBeInTheDocument();
   });
 });
+
+// 요구 9.3, 10.2: 저장 전 내 상품(빠른 비교, 저장 없이 비교만)으로 들어오면
+// 온라인 검색어와 돌아와서 미리 채울 값은 최저가 기록이 아니라 내 상품을 따른다.
+describe('저장 전 내 상품의 온라인 가격 검색', () => {
+  const anchor = {
+    productName: { kind: 'value', value: '국산콩 두부' },
+    brand: { kind: 'value', value: '풀무원' },
+    unitAmount: { kind: 'value', value: { amount: 300, unit: 'g' } },
+    unitPrice: { value: 580, per: 100, type: 'g' },
+  } as const;
+
+  async function setup(state: unknown) {
+    vi.spyOn(window, 'open').mockImplementation((() => ({ opener: window }) as unknown as Window) as typeof window.open);
+    // 최저가는 다른 상품(노브랜드 부침두부)
+    const { itemId } = await saveRecord(
+      d({ productName: { kind: 'value', value: '부침두부' }, brand: { kind: 'value', value: '노브랜드' }, unitAmount: { kind: 'value', value: { amount: 550, unit: 'g' } }, bundleCount: 1, price: 2480 }),
+      photo,
+    );
+    renderAt(`/items/${itemId}`, state);
+    await waitFor(() => expect(screen.getAllByTestId('row')).toHaveLength(1));
+    const u = userEvent.setup();
+    await u.click(screen.getAllByRole('button', { name: /온라인 가격 검색/ })[0]);
+    return u;
+  }
+
+  it('빠른 비교: 검색어와 미리 채울 값이 내 상품이다', async () => {
+    const u = await setup({ draftAnchor: anchor, quick: true, registerDraft: d({ price: 3480 }), priceIsPrevious: true });
+    expect(screen.getByLabelText('검색어')).toHaveValue('풀무원 국산콩 두부 300g 가격');
+    await u.click(screen.getByRole('button', { name: '구글에서 열기' }));
+    const p = JSON.parse(sessionStorage.getItem([...Array(sessionStorage.length).keys()].map((i) => sessionStorage.key(i)!).find((k) => sessionStorage.getItem(k)!.includes('"mode"'))!)!);
+    expect(p.from).toBeUndefined();
+    expect(p.draft.productName).toEqual({ kind: 'value', value: '국산콩 두부' });
+    expect(p.draft.bundleCount).toBe(2);
+    // 요구 10.3: 가격, 판매처, 배송비, 사진은 비운다
+    expect(p.draft.price).toBeNull();
+    expect(p.draft.storeName).toBe('');
+    expect(p.draft.photo).toEqual({ kind: 'empty' });
+  });
+
+  it('저장 없이 비교만: 입력값만 있어도 검색어가 내 상품이다', async () => {
+    await setup({ draftAnchor: anchor });
+    expect(screen.getByLabelText('검색어')).toHaveValue('풀무원 국산콩 두부 300g 가격');
+  });
+});

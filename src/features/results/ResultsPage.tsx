@@ -7,6 +7,7 @@ import { PhotoZoom } from '../../components/Thumb';
 import { useAsync } from '../../components/useAsync';
 import { buildResult, emptyFilters, originLabel, type Anchor, type Filters, type Period, type Preset } from '../../domain/compare';
 import { buildSearchQuery } from '../../domain/searchQuery';
+import { prefillFromDraft } from '../../domain/prefill';
 import type { RegisterDraft } from '../../domain/types';
 import { formatUnitPrice, formatWon } from '../../domain/unitPrice';
 import { getItem, listRecordViews } from '../../data/repositories';
@@ -99,15 +100,26 @@ export function ResultsPage() {
   ];
   const clearFilters = () => setView((v) => ({ ...v, filters: emptyFilters(), period: 'all' }));
 
-  // 검색어와 미리 채우기 기준 상품: 내 상품 → 최저가 기록 → 품목명
-  const baseRec = (mine && records?.find((r) => r.id === mine)) || result?.cheapest?.rec || records?.[0];
+  // 검색어와 미리 채우기 기준 상품: 내 상품(저장된 기록 → 저장 전 입력값) → 최저가 기록 → 품목명 (요구 9.3, 10.2)
+  const mineRec = mine ? records?.find((r) => r.id === mine) : undefined;
+  const draftProduct =
+    !mineRec && draftAnchor
+      ? prefillFromDraft({
+          ...navState?.registerDraft,
+          itemName: item?.name ?? navState?.registerDraft?.itemName ?? '',
+          productName: navState?.registerDraft?.productName ?? draftAnchor.productName,
+          brand: navState?.registerDraft?.brand ?? draftAnchor.brand,
+          unitAmount: navState?.registerDraft?.unitAmount ?? draftAnchor.unitAmount,
+        })
+      : undefined;
+  const baseRec = mineRec ?? (draftProduct ? undefined : result?.cheapest?.rec || records?.[0]);
   const query = baseRec
     ? buildSearchQuery(baseRec)
-    : draftAnchor
-      ? buildSearchQuery({ itemName: item?.name ?? '', productName: draftAnchor.productName, brand: draftAnchor.brand, unitAmount: draftAnchor.unitAmount })
+    : draftProduct
+      ? buildSearchQuery(draftProduct)
       : buildSearchQuery({ itemName: item?.name ?? '' });
   const onSearched = () => {
-    const p: PendingSearch = { from: baseRec?.id, mode: 'search', itemName: item?.name };
+    const p: PendingSearch = { from: baseRec?.id, mode: 'search', itemName: item?.name, draft: draftProduct };
     rememberSearch(p);
     setPending(p);
   };

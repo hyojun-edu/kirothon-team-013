@@ -11,7 +11,8 @@ export function ReturnBar({ pending, onClose }: { pending: PendingSearch; onClos
         type="button"
         onClick={() => {
           clearPendingSearch();
-          nav(registerUrl(pending));
+          if (pending.draft) nav('/register', { state: { registerDraft: pending.draft } });
+          else nav(registerUrl(pending));
         }}
       >
         온라인 가격 등록
