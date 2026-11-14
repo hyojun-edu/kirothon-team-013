@@ -3,6 +3,7 @@ import { db, OWNER_ID } from './db';
 import {
   deleteRecord,
   getRecordView,
+  latestPhotoId,
   listRecordViews,
   recentRecords,
   saveRecord,
@@ -106,5 +107,44 @@ describe('저장소 (작업 3)', () => {
     expect((await searchItems('두')).map((i) => i.name)).toEqual(['두부']);
     expect((await searchStores('이마트')).map((s) => s.name)).toEqual(['이마트 구로점']);
     expect(await recentRecords()).toHaveLength(2);
+  });
+
+  describe('이전 사진 불러오기 (작업 11.1, 요구 3.7~3.10)', () => {
+    it('구매일이 가장 늦은 기록의 사진을 돌려준다', async () => {
+      const a = await saveRecord(draft({ purchasedAt: '2026-11-01' }), { ...photo, blob: new Blob(['new']) });
+      await saveRecord(draft({ purchasedAt: '2026-09-01', storeName: '롯데' }), photo);
+      const v = (await getRecordView(a.id))!;
+      expect(await latestPhotoId(v.productId)).toBe(v.photoId);
+    });
+
+    it('기록이 없거나 사진이 지워졌으면 undefined', async () => {
+      expect(await latestPhotoId('none')).toBeUndefined();
+      const a = await saveRecord(draft(), photo);
+      const v = (await getRecordView(a.id))!;
+      await db.photos.delete(v.photoId);
+      expect(await latestPhotoId(v.productId)).toBeUndefined();
+    });
+
+    it('기존 photoId로 저장하면 새 Photo를 만들지 않고 같은 사진을 가리킨다', async () => {
+      const a = await saveRecord(draft(), photo);
+      const pid = (await getRecordView(a.id))!.photoId;
+      const b = await saveRecord(draft({ price: 3000 }), pid);
+      expect((await getRecordView(b.id))!.photoId).toBe(pid);
+      expect(await db.photos.count()).toBe(1);
+    });
+
+    it('다른 기록이 쓰는 사진은 삭제·수정해도 남는다', async () => {
+      const a = await saveRecord(draft(), photo);
+      const pid = (await getRecordView(a.id))!.photoId;
+      const b = await saveRecord(draft({ price: 3000 }), pid);
+      await updateRecord(b.id, draft({ price: 3000 }), { ...photo, blob: new Blob(['n']) });
+      expect(await db.photos.get(pid)).toBeDefined();
+      const c = await saveRecord(draft({ price: 2000 }), pid);
+      await deleteRecord(a.id);
+      expect(await db.photos.get(pid)).toBeDefined();
+      await deleteRecord(c.id);
+      expect(await db.photos.get(pid)).toBeUndefined();
+      expect(await db.photos.count()).toBe(1); // b의 새 사진
+    });
   });
 });
